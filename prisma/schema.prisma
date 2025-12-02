@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  uuid      String   @id @default(uuid()) @db.Uuid
+  fullName  String   @map("full_name")
+  email     String   @unique
+  status    String?
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  directChatsAsUser1  DirectChat[] @relation("User1DirectChats")
+  directChatsAsUser2  DirectChat[] @relation("User2DirectChats")
+  chats               Chat[]
+  reels               Reel[]
+  taskLists           TaskList[]
+
+  @@map("users")
+}
+
+model DirectChat {
+  uuid      String   @id @default(uuid()) @db.Uuid
+  uuid1     String   @map("uuid_1") @db.Uuid
+  uuid2     String   @map("uuid_2") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user1 User @relation("User1DirectChats", fields: [uuid1], references: [uuid], onDelete: Cascade)
+  user2 User @relation("User2DirectChats", fields: [uuid2], references: [uuid], onDelete: Cascade)
+
+  @@unique([uuid1, uuid2])
+  @@map("direct_chats")
+}
+
+model Group {
+  uuid      String   @id @default(uuid()) @db.Uuid
+  name      String
+  photo     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  chats Chat[]
+
+  @@map("groups")
+}
+
+model Chat {
+  uuid        String   @id @default(uuid()) @db.Uuid
+  textMessage String   @map("text_message") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  createdBy   String   @map("created_by") @db.Uuid
+  groupUuid   String?  @map("group_uuid") @db.Uuid
+
+  // Relations
+  creator User   @relation(fields: [createdBy], references: [uuid], onDelete: Cascade)
+  group   Group? @relation(fields: [groupUuid], references: [uuid], onDelete: Cascade)
+
+  @@map("chats")
+}
+
+model Reel {
+  uuid        String   @id @default(uuid()) @db.Uuid
+  description String?  @db.Text
+  source      String
+  createdAt   DateTime @default(now()) @map("created_at")
+  createdBy   String   @map("created_by") @db.Uuid
+
+  // Relations
+  creator User @relation(fields: [createdBy], references: [uuid], onDelete: Cascade)
+
+  @@map("reels")
+}
+
+model TaskList {
+  uuid        String   @id @default(uuid()) @db.Uuid
+  task        String   @db.Text
+  isCompleted Boolean  @default(false) @map("is_completed")
+  createdAt   DateTime @default(now()) @map("created_at")
+  createdBy   String   @map("created_by") @db.Uuid
+
+  // Relations
+  creator User @relation(fields: [createdBy], references: [uuid], onDelete: Cascade)
+
+  @@map("task_lists")
+}
