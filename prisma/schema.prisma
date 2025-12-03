@@ -106,11 +106,13 @@ model GroupChat {
 model Reel {
   uuid              String   @id @default(uuid()) @db.Uuid
   description       String?  @db.Text
-  source            String                          // Google Drive file URL
+  source            String                          // Google Drive file URL (preview URL)
+  previewUrl        String?  @map("preview_url")   // Google Drive preview URL for video player
+  downloadUrl       String?  @map("download_url")  // Google Drive download URL
   googleDriveFileId String?  @map("google_drive_file_id")  // File ID from Google Drive
   fileSize          Int?     @map("file_size")             // File size in bytes
   mimeType          String?  @map("mime_type")             // e.g., video/mp4
-  fileName          String?  @map("file_name")             // Original file name
+  fileName          String?  @map("file_name")             // UUID-based file name
   createdAt         DateTime @default(now()) @map("created_at")
   createdBy         String   @map("created_by") @db.Uuid
 

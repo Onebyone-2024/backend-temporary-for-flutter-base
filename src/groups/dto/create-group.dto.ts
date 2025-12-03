@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  ArrayUnique,
+} from 'class-validator';
 
 export class CreateGroupDto {
   @IsString()
@@ -8,4 +14,10 @@ export class CreateGroupDto {
   @IsString()
   @IsOptional()
   photo?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayUnique()
+  @IsOptional()
+  members?: string[];
 }

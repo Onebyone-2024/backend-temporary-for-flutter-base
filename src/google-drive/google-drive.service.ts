@@ -3,6 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
+import { randomUUID } from 'crypto';
 
 export interface MultipartFile {
   buffer: Buffer;
@@ -110,12 +111,14 @@ export class GoogleDriveService {
     fileSize: number;
     mimeType: string;
     publicUrl: string;
+    previewUrl: string;
+    downloadUrl: string;
   }> {
     if (file.mimetype !== 'video/mp4') {
       throw new BadRequestException('Only MP4 videos are allowed');
     }
 
-    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    const MAX_FILE_SIZE = 15 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE) {
       const sizeMb = (file.size / 1024 / 1024).toFixed(2);
       throw new BadRequestException(
@@ -126,10 +129,16 @@ export class GoogleDriveService {
     try {
       const accessToken = await this.getAccessToken();
 
+      // Generate UUID filename with original extension
+      const fileExtension = file.originalname.split('.').pop() || 'mp4';
+      const uuidFileName = `${randomUUID()}.${fileExtension}`;
+
       const boundary = 'foo_bar_baz';
       const metadata = {
-        name: file.originalname,
+        name: uuidFileName,
         parents: [this.folderIdReels],
+        // Important: This tells Google Drive to use the parent folder's storage quota
+        // instead of the service account's non-existent quota
       };
 
       const metadataStr = JSON.stringify(metadata);
@@ -146,8 +155,9 @@ export class GoogleDriveService {
 
       const multipartBody = Buffer.concat([part1, part2, part3, part4, part5]);
 
+      // Add supportsAllDrives=true to support both regular folders and shared drives
       const uploadUrl =
-        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true';
       const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
@@ -165,14 +175,18 @@ export class GoogleDriveService {
 
       await this.grantPublicPermission(data.id, accessToken);
 
-      const publicUrl = `https://drive.google.com/uc?export=download&id=${data.id}`;
+      // Multiple URL formats for different purposes
+      const downloadUrl = `https://drive.google.com/uc?export=download&id=${data.id}`;
+      const previewUrl = `https://drive.google.com/file/d/${data.id}/preview`;
 
       return {
         fileId: data.id,
-        fileName: file.originalname,
+        fileName: uuidFileName,
         fileSize: file.size,
         mimeType: file.mimetype,
-        publicUrl,
+        publicUrl: previewUrl, // Changed to preview URL for video player
+        previewUrl: previewUrl, // For video player embed
+        downloadUrl: downloadUrl, // For direct download
       };
     } catch (error) {
       throw new InternalServerErrorException(
@@ -186,7 +200,7 @@ export class GoogleDriveService {
     accessToken: string,
   ): Promise<void> {
     try {
-      const permUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
+      const permUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?supportsAllDrives=true`;
       const response = await fetch(permUrl, {
         method: 'POST',
         headers: {
@@ -214,7 +228,7 @@ export class GoogleDriveService {
     try {
       const accessToken = await this.getAccessToken();
 
-      const delUrl = `https://www.googleapis.com/drive/v3/files/${fileId}`;
+      const delUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`;
       const response = await fetch(delUrl, {
         method: 'DELETE',
         headers: {
@@ -241,7 +255,7 @@ export class GoogleDriveService {
     try {
       const accessToken = await this.getAccessToken();
 
-      const infoUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,size,mimeType`;
+      const infoUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,size,mimeType&supportsAllDrives=true`;
       const response = await fetch(infoUrl, {
         headers: {
           Authorization: `Bearer ${accessToken}`,

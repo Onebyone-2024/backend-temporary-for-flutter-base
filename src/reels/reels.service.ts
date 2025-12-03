@@ -125,6 +125,8 @@ export class ReelsService {
       data: {
         description: description || '',
         source: uploadResult.publicUrl,
+        previewUrl: uploadResult.previewUrl,
+        downloadUrl: uploadResult.downloadUrl,
         googleDriveFileId: uploadResult.fileId,
         fileSize: uploadResult.fileSize,
         mimeType: uploadResult.mimeType,
