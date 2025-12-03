@@ -19,12 +19,13 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  directChatsAsUser1  DirectChat[] @relation("User1DirectChats")
-  directChatsAsUser2  DirectChat[] @relation("User2DirectChats")
-  groupChats          GroupChat[]
-  groupMembers        GroupMember[] @relation("GroupMembers")
-  reels               Reel[]
-  taskLists           TaskList[]
+  directChatsAsUser1     DirectChat[] @relation("User1DirectChats")
+  directChatsAsUser2     DirectChat[] @relation("User2DirectChats")
+  directChatMessages     DirectChatMessage[] @relation("DirectChatMessagesSent")
+  groupChats             GroupChat[]
+  groupMembers           GroupMember[] @relation("GroupMembers")
+  reels                  Reel[]
+  taskLists              TaskList[]
 
   @@map("users")
 }
@@ -38,9 +39,27 @@ model DirectChat {
   // Relations
   user1 User @relation("User1DirectChats", fields: [uuid1], references: [uuid], onDelete: Cascade)
   user2 User @relation("User2DirectChats", fields: [uuid2], references: [uuid], onDelete: Cascade)
+  messages DirectChatMessage[]
 
   @@unique([uuid1, uuid2])
   @@map("direct_chats")
+}
+
+model DirectChatMessage {
+  uuid           String   @id @default(uuid()) @db.Uuid
+  directChatUuid String   @map("direct_chat_uuid") @db.Uuid
+  senderUuid     String   @map("sender_uuid") @db.Uuid
+  message        String   @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  directChat DirectChat @relation(fields: [directChatUuid], references: [uuid], onDelete: Cascade)
+  sender     User       @relation("DirectChatMessagesSent", fields: [senderUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([directChatUuid])
+  @@index([senderUuid])
+  @@map("direct_chat_messages")
 }
 
 model Group {
@@ -85,11 +104,15 @@ model GroupChat {
 }
 
 model Reel {
-  uuid        String   @id @default(uuid()) @db.Uuid
-  description String?  @db.Text
-  source      String
-  createdAt   DateTime @default(now()) @map("created_at")
-  createdBy   String   @map("created_by") @db.Uuid
+  uuid              String   @id @default(uuid()) @db.Uuid
+  description       String?  @db.Text
+  source            String                          // Google Drive file URL
+  googleDriveFileId String?  @map("google_drive_file_id")  // File ID from Google Drive
+  fileSize          Int?     @map("file_size")             // File size in bytes
+  mimeType          String?  @map("mime_type")             // e.g., video/mp4
+  fileName          String?  @map("file_name")             // Original file name
+  createdAt         DateTime @default(now()) @map("created_at")
+  createdBy         String   @map("created_by") @db.Uuid
 
   // Relations
   creator User @relation(fields: [createdBy], references: [uuid], onDelete: Cascade)

@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { GoogleDriveService } from '../google-drive/google-drive.service';
 import { CreateReelDto } from './dto/create-reel.dto';
 import { UpdateReelDto } from './dto/update-reel.dto';
 
 @Injectable()
 export class ReelsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly googleDriveService: GoogleDriveService,
+  ) {}
 
   async create(createReelDto: CreateReelDto) {
     const { createdBy } = createReelDto;
@@ -87,6 +91,49 @@ export class ReelsService {
 
     await client.reel.delete({
       where: { uuid },
+    });
+  }
+
+  async uploadReel(
+    file: {
+      buffer: Buffer;
+      originalname: string;
+      mimetype: string;
+      size: number;
+    },
+    userId: string,
+    description?: string,
+  ) {
+    const client = this.prisma.getPrisma();
+
+    // Check if user exists
+    const user = await client.user.findUnique({ where: { uuid: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Upload file to Google Drive
+    const uploadResult = await this.googleDriveService.uploadFile({
+      buffer: file.buffer,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+    });
+
+    // Save reel record in database
+    return await client.reel.create({
+      data: {
+        description: description || '',
+        source: uploadResult.publicUrl,
+        googleDriveFileId: uploadResult.fileId,
+        fileSize: uploadResult.fileSize,
+        mimeType: uploadResult.mimeType,
+        fileName: uploadResult.fileName,
+        createdBy: userId,
+      },
+      include: {
+        creator: { select: { uuid: true, fullName: true, email: true } },
+      },
     });
   }
 }

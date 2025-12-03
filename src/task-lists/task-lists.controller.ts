@@ -9,11 +9,13 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { TaskListsService } from './task-lists.service';
 import { CreateTaskListDto } from './dto/create-task-list.dto';
 import { UpdateTaskListDto } from './dto/update-task-list.dto';
 
 @Controller('task-lists')
+@ApiTags('Task Lists')
 export class TaskListsController {
   constructor(private readonly taskListsService: TaskListsService) {}
 

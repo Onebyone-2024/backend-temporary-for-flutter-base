@@ -1,0 +1,232 @@
+{
+  "info": {
+    "_postman_id": "google-drive-reels-api",
+    "name": "Google Drive Reels API",
+    "description": "Postman collection for testing Google Drive Reel upload and management endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Reel Upload (with Google Drive)",
+      "item": [
+        {
+          "name": "Upload Reel with Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data",
+                "disabled": false
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/your/video.mp4",
+                  "disabled": false
+                },
+                {
+                  "key": "description",
+                  "value": "My awesome reel",
+                  "type": "text",
+                  "disabled": false
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3000/reels/upload/{{userId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["reels", "upload", "{{userId}}"]
+            },
+            "description": "Upload a reel with MP4 video file to Google Drive\n\n**Parameters:**\n- userId (path): UUID of the user uploading the reel\n- file (form): The MP4 video file (max 5MB)\n- description (form, optional): Description of the reel\n\n**Constraints:**\n- Only MP4 videos allowed\n- Maximum file size: 5MB\n- File is automatically uploaded to Google Drive and made public"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": []
+                    },
+                    {
+                      "key": "description",
+                      "value": "My awesome reel",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "http://localhost:3000/reels/upload/550e8400-e29b-41d4-a716-446655440000",
+                  "protocol": "http",
+                  "host": ["localhost"],
+                  "port": "3000",
+                  "path": [
+                    "reels",
+                    "upload",
+                    "550e8400-e29b-41d4-a716-446655440000"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"uuid\": \"550e8400-e29b-41d4-a716-446655440001\",\n  \"description\": \"My awesome reel\",\n  \"source\": \"https://drive.google.com/uc?export=download&id=1AbCdEfGhIjKlMnOpQrStUvWxYz123456\",\n  \"googleDriveFileId\": \"1AbCdEfGhIjKlMnOpQrStUvWxYz123456\",\n  \"fileSize\": 2097152,\n  \"mimeType\": \"video/mp4\",\n  \"fileName\": \"video.mp4\",\n  \"createdAt\": \"2024-12-03T12:00:00.000Z\",\n  \"createdBy\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"creator\": {\n    \"uuid\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"fullName\": \"John Doe\",\n    \"email\": \"john@example.com\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reel Management",
+      "item": [
+        {
+          "name": "Create Reel (without file)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"My awesome reel without upload\",\n  \"source\": \"https://example.com/video.mp4\",\n  \"createdBy\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/reels",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["reels"]
+            },
+            "description": "Create a reel without file upload (manual source URL)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Reels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/reels",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["reels"]
+            },
+            "description": "Retrieve all reels in the system"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reels by User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/reels/user/{{userId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["reels", "user", "{{userId}}"]
+            },
+            "description": "Get all reels created by a specific user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reel by UUID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/reels/{{reelUuid}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["reels", "{{reelUuid}}"]
+            },
+            "description": "Get a specific reel by its UUID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Reel",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated reel description\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/reels/{{reelUuid}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["reels", "{{reelUuid}}"]
+            },
+            "description": "Update a reel (description, etc.)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Reel",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/reels/{{reelUuid}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["reels", "{{reelUuid}}"]
+            },
+            "description": "Delete a reel (also deletes from Google Drive)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "userId",
+      "value": "550e8400-e29b-41d4-a716-446655440000",
+      "type": "string",
+      "description": "UUID of the user. Replace with an actual user UUID from your database"
+    },
+    {
+      "key": "reelUuid",
+      "value": "550e8400-e29b-41d4-a716-446655440001",
+      "type": "string",
+      "description": "UUID of the reel. Replace with an actual reel UUID"
+    }
+  ]
+}

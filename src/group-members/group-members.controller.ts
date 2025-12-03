@@ -8,10 +8,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { GroupMembersService } from './group-members.service';
 import { CreateGroupMemberDto } from './dto/create-group-member.dto';
 
 @Controller('group-members')
+@ApiTags('Group Members')
 export class GroupMembersController {
   constructor(private readonly groupMembersService: GroupMembersService) {}
 

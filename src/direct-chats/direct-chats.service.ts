@@ -73,6 +73,7 @@ export class DirectChatsService {
       include: {
         user1: { select: { uuid: true, fullName: true, email: true } },
         user2: { select: { uuid: true, fullName: true, email: true } },
+        messages: true,
       },
     });
 
@@ -119,6 +120,145 @@ export class DirectChatsService {
 
     await client.directChat.delete({
       where: { uuid },
+    });
+  }
+
+  // ========== Direct Chat Messages ==========
+
+  async sendMessage(
+    directChatUuid: string,
+    senderUuid: string,
+    message: string,
+  ) {
+    const client = this.prisma.getPrisma();
+
+    // Verify direct chat exists
+    const directChat = await client.directChat.findUnique({
+      where: { uuid: directChatUuid },
+    });
+
+    if (!directChat) {
+      throw new NotFoundException(
+        `Direct chat with UUID ${directChatUuid} not found`,
+      );
+    }
+
+    // Verify sender is part of this direct chat
+    if (directChat.uuid1 !== senderUuid && directChat.uuid2 !== senderUuid) {
+      throw new BadRequestException('Sender is not part of this direct chat');
+    }
+
+    // Verify sender exists
+    const sender = await client.user.findUnique({
+      where: { uuid: senderUuid },
+    });
+
+    if (!sender) {
+      throw new NotFoundException(`User with UUID ${senderUuid} not found`);
+    }
+
+    // Create the message
+    return await client.directChatMessage.create({
+      data: {
+        directChatUuid,
+        senderUuid,
+        message,
+      },
+      include: {
+        sender: {
+          select: { uuid: true, fullName: true, email: true },
+        },
+        directChat: {
+          select: {
+            uuid: true,
+            user1: { select: { uuid: true, fullName: true } },
+            user2: { select: { uuid: true, fullName: true } },
+          },
+        },
+      },
+    });
+  }
+
+  async getMessages(
+    directChatUuid: string,
+    limit: number = 50,
+    offset: number = 0,
+  ) {
+    const client = this.prisma.getPrisma();
+
+    // Verify direct chat exists
+    const directChat = await client.directChat.findUnique({
+      where: { uuid: directChatUuid },
+    });
+
+    if (!directChat) {
+      throw new NotFoundException(
+        `Direct chat with UUID ${directChatUuid} not found`,
+      );
+    }
+
+    const messages = await client.directChatMessage.findMany({
+      where: { directChatUuid },
+      include: {
+        sender: {
+          select: { uuid: true, fullName: true, email: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+      skip: offset,
+    });
+
+    const total = await client.directChatMessage.count({
+      where: { directChatUuid },
+    });
+
+    return {
+      messages,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+    };
+  }
+
+  async deleteMessage(messageUuid: string) {
+    const client = this.prisma.getPrisma();
+
+    const message = await client.directChatMessage.findUnique({
+      where: { uuid: messageUuid },
+    });
+
+    if (!message) {
+      throw new NotFoundException(`Message with UUID ${messageUuid} not found`);
+    }
+
+    await client.directChatMessage.delete({
+      where: { uuid: messageUuid },
+    });
+  }
+
+  async updateMessage(messageUuid: string, newMessage: string) {
+    const client = this.prisma.getPrisma();
+
+    const message = await client.directChatMessage.findUnique({
+      where: { uuid: messageUuid },
+    });
+
+    if (!message) {
+      throw new NotFoundException(`Message with UUID ${messageUuid} not found`);
+    }
+
+    return await client.directChatMessage.update({
+      where: { uuid: messageUuid },
+      data: { message: newMessage },
+      include: {
+        sender: {
+          select: { uuid: true, fullName: true, email: true },
+        },
+      },
     });
   }
 }

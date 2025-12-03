@@ -10,11 +10,13 @@ import {
   HttpStatus,
   Query,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { GroupChatsService } from './group-chats.service';
 import { CreateGroupChatDto } from './dto/create-group-chat.dto';
 import { UpdateGroupChatDto } from './dto/update-group-chat.dto';
 
 @Controller('group-chats')
+@ApiTags('Group Chats')
 export class GroupChatsController {
   constructor(private readonly groupChatsService: GroupChatsService) {}
 
