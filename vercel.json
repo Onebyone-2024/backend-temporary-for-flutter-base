@@ -1,16 +1,14 @@
 {
-  "version": 2,
-  "builds": [
+  "buildCommand": "npx prisma generate && npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
     {
-      "src": "dist/main.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
     {
-      "src": "/(.*)",
-      "dest": "dist/main.js"
+      "source": "/(.*)",
+      "destination": "/"
     }
-  ],
-  "buildCommand": "npx prisma generate && npm run build"
+  ]
 }
