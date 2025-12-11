@@ -58,6 +58,12 @@ async function bootstrap() {
       showRequestHeaders: true,
       docExpansion: 'list',
     },
+    customCssUrl:
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css',
+    customJs: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.js',
+    ],
   });
 
   const port = process.env.PORT || 3000;
