@@ -35,17 +35,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies WITH Prisma engine rebuild for linux-gnu
-RUN npm install --legacy-peer-deps --omit=dev && npm rebuild
+# Install only production dependencies
+RUN npm install --legacy-peer-deps --omit=dev
 
 # Copy Prisma schema from source
 COPY prisma ./prisma
 
-# Clean Prisma cache and regenerate for the correct platform
-RUN rm -rf node_modules/.prisma/client && npx prisma generate
-
 # Copy compiled code from builder
 COPY --from=builder /app/dist ./dist
+
+# Copy pre-generated Prisma client from builder stage
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Expose port
 EXPOSE 3000
