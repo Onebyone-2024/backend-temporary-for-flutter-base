@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -22,12 +22,9 @@ RUN npx prisma generate
 RUN npm run build
 
 # Production stage
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
-
-# Install OpenSSL and other required dependencies
-RUN apk add --no-cache openssl libssl1.1
 
 # Copy package files
 COPY package*.json ./
@@ -45,7 +42,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Expose port
-EXPOSE 3000
+EXPOSE 5557
 
 # Start application
 CMD ["node", "dist/src/main"]
