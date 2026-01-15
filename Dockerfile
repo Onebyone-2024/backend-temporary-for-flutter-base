@@ -1,48 +1,53 @@
+# =========================
 # Build stage
+# =========================
 FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy package files
+# System deps (important for Prisma)
+RUN apt-get update \
+  && apt-get install -y openssl \
+  && rm -rf /var/lib/apt/lists/*
+
+# Copy config & dependencies
 COPY package*.json ./
 COPY tsconfig.json ./
 COPY nest-cli.json ./
 COPY prisma ./prisma
 
-# Install all dependencies
+# Install all deps
 RUN npm install --legacy-peer-deps
 
-# Copy source code
+# Copy source & build
 COPY src ./src
-
-# Generate Prisma Client
-RUN npx prisma generate
-
-# Build application
 RUN npm run build
 
+# =========================
 # Production stage
+# =========================
 FROM node:20-slim
 
 WORKDIR /app
 
-# Copy package files
+# System deps (important for Prisma)
+RUN apt-get update \
+  && apt-get install -y openssl \
+  && rm -rf /var/lib/apt/lists/*
+
+# Copy package & prisma
 COPY package*.json ./
-
-# Install only production dependencies
-RUN npm install --legacy-peer-deps --omit=dev
-
-# Copy Prisma schema
 COPY prisma ./prisma
 
-# Copy compiled code from builder
+# Install prod deps only
+RUN npm install --legacy-peer-deps --omit=dev
+
+# Generate Prisma Client in runtime environment
+RUN npx prisma generate
+
+# Copy compiled app
 COPY --from=builder /app/dist ./dist
 
-# Copy pre-generated Prisma client
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-# Expose port
 EXPOSE 5557
 
-# Start application
 CMD ["node", "dist/src/main"]
