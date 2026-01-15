@@ -62,13 +62,25 @@ export class SimulationService {
   ) {}
 
   async createSimulationJob() {
+    // Fetch driver user from DB by email
+    const driver = await this.prismaService.user.findUnique({
+      where: { email: 'driver@example.com' },
+    });
+
+    if (!driver) {
+      return {
+        success: false,
+        message: 'Driver user with email driver@example.com not found',
+      };
+    }
+
     // Buat job dengan dummy data yang sudah fixed
     const job = await this.prismaService.job.create({
       data: {
         jobCode: `SIM-${Date.now()}`,
         description: DUMMY_DATA.description,
         jobStatus: 'planned',
-        assignedTo: DUMMY_DATA.assignedTo,
+        assignedTo: driver.uuid,
         pickup: {
           create: {
             lat: DUMMY_DATA.pickup.lat,
