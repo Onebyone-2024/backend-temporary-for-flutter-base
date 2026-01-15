@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { RedisModule } from './redis/redis.module';
 import { JobsModule } from './jobs/jobs.module';
 import { TrackingModule } from './tracking/tracking.module';
+import { SimulationModule } from './simulation/simulation.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { TrackingModule } from './tracking/tracking.module';
     AuthModule,
     JobsModule,
     TrackingModule, // Includes WebSocket Gateway
+    SimulationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -8,5 +8,6 @@ import { RedisModule } from '../redis/redis.module';
   imports: [RedisModule],
   controllers: [TrackingController],
   providers: [TrackingService, TrackingGateway],
+  exports: [TrackingService],
 })
 export class TrackingModule {}

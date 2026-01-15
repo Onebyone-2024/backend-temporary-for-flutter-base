@@ -66,4 +66,26 @@ export class TrackingService {
       data: location,
     };
   }
+
+  async pushLocationToSocket(
+    jobId: string,
+    locationData: { lat: number; lng: number; timestamp: string; address?: string },
+  ) {
+    // Broadcast to all clients subscribed to this job
+    if (this.gateway.server) {
+      const roomName = `tracking_${jobId}`;
+      this.gateway.server.to(roomName).emit('location_update', {
+        jobId,
+        location: locationData,
+      });
+      this.logger.log(`📡 Broadcast location update to room: ${roomName}`);
+    } else {
+      this.logger.warn('WebSocket server not available for broadcasting');
+    }
+
+    return {
+      success: true,
+      message: 'Location broadcasted successfully',
+    };
+  }
 }
