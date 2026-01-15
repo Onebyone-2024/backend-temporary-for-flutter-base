@@ -10,12 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Seed configuration
-generator seed {
-  provider = "prisma-seeders"
-  output   = "./seeders"
-}
-
 enum JobStatus {
   planned
   in_progress
@@ -87,4 +81,3 @@ model Delivery {
 
   @@map("deliveries") 
 }
- 
