@@ -5,12 +5,15 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY tsconfig.json ./
+COPY nest-cli.json ./
+COPY prisma ./prisma
 
 # Install dependencies
 RUN npm install --legacy-peer-deps
 
 # Copy source code
-COPY . .
+COPY src ./src
 
 # Generate Prisma Client
 RUN npx prisma generate
@@ -34,8 +37,8 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
 
-# Expose port (adjust if needed)
+# Expose port
 EXPOSE 3000
 
 # Start application
-CMD ["node", "dist/main.js"]
+CMD ["npm", "run", "start:prod"]
