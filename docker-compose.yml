@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    image: ghcr.io/onebyone-2024/backend-temporary-for-flutter-base:sha-c18c0a7
+    image: ghcr.io/onebyone-2024/backend-temporary-for-flutter-base:sha-16c1b80
     container_name: live-tracking-be
     platform: linux/amd64
     ports:
