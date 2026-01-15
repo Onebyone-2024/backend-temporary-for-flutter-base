@@ -26,9 +26,6 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install OpenSSL 1.1 dan dependencies yang diperlukan Prisma
-RUN apk add --no-cache openssl1.1-compat
-
 # Copy package files
 COPY package*.json ./
 
