@@ -1,0 +1,2 @@
+# Prisma configuration to ensure correct binary target
+PRISMA_SKIP_ENGINE_CHECK=true
