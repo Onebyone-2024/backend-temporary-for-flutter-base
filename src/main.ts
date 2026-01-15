@@ -26,9 +26,9 @@ async function bootstrap() {
 
   // Swagger Documentation Setup
   const config = new DocumentBuilder()
-    .setTitle('Social Media Backend API')
+    .setTitle('Job Tracking Backend API')
     .setDescription(
-      'Complete REST API for social media platform with JWT authentication, messaging, groups, reels, and task management',
+      'REST API for real-time job tracking with location updates, status management, and Redis caching',
     )
     .setVersion('1.0.0')
     .addBearerAuth(
@@ -39,14 +39,10 @@ async function bootstrap() {
       },
       'JWT',
     )
+    .addTag('Health', 'Health check and status')
     .addTag('Auth', 'User registration and login')
-    .addTag('Users', 'User management')
-    .addTag('Direct Chats', '1-on-1 messaging')
-    .addTag('Groups', 'Group management')
-    .addTag('Group Members', 'Group membership management')
-    .addTag('Group Chats', 'Group messaging')
-    .addTag('Reels', 'Video content management')
-    .addTag('Task Lists', 'User task management')
+    .addTag('Jobs', 'Job creation and management')
+    .addTag('Tracking', 'Real-time location tracking')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

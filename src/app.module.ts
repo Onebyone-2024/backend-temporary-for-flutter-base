@@ -3,14 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
-import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { DirectChatsModule } from './direct-chats/direct-chats.module';
-import { GroupsModule } from './groups/groups.module';
-import { GroupMembersModule } from './group-members/group-members.module';
-import { GroupChatsModule } from './group-chats/group-chats.module';
-import { ReelsModule } from './reels/reels.module';
-import { TaskListsModule } from './task-lists/task-lists.module';
+import { RedisModule } from './redis/redis.module';
+import { JobsModule } from './jobs/jobs.module';
+import { TrackingModule } from './tracking/tracking.module';
 
 @Module({
   imports: [
@@ -23,15 +19,13 @@ import { TaskListsModule } from './task-lists/task-lists.module';
     // Prisma Module (Global)
     PrismaModule,
 
+    // Redis Module
+    RedisModule,
+
     // Feature Modules
     AuthModule,
-    UsersModule,
-    DirectChatsModule,
-    GroupsModule,
-    GroupMembersModule,
-    GroupChatsModule,
-    ReelsModule,
-    TaskListsModule,
+    JobsModule,
+    TrackingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

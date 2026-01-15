@@ -1,0 +1,365 @@
+{
+  "title": "Job Tracking Backend API - Sample Payloads",
+  "date": "2026-01-14",
+  "baseUrl": "http://localhost:3000",
+  "swaggerUrl": "http://localhost:3000/api",
+
+  "endpoints": {
+    "health": {
+      "description": "Health check endpoint",
+      "method": "GET",
+      "path": "/health",
+      "response": {
+        "status": "ok",
+        "timestamp": "2026-01-14T16:33:11.000Z",
+        "redis": "connected"
+      }
+    },
+
+    "auth": {
+      "register": {
+        "description": "Register new user",
+        "method": "POST",
+        "path": "/auth/register",
+        "request": {
+          "email": "john@example.com",
+          "fullName": "John Doe",
+          "password": "securePassword123"
+        },
+        "response": {
+          "message": "User registered successfully",
+          "user": {
+            "uuid": "123e4567-e89b-12d3-a456-426614174000",
+            "fullName": "John Doe",
+            "email": "john@example.com"
+          },
+          "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        }
+      },
+      "login": {
+        "description": "Login user",
+        "method": "POST",
+        "path": "/auth/login",
+        "request": {
+          "email": "john@example.com",
+          "password": "securePassword123"
+        },
+        "response": {
+          "message": "Login successful",
+          "user": {
+            "uuid": "123e4567-e89b-12d3-a456-426614174000",
+            "fullName": "John Doe",
+            "email": "john@example.com",
+            "status": null
+          },
+          "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        }
+      }
+    },
+
+    "jobs": {
+      "create": {
+        "description": "Create new job with pickup and delivery details. jobCode is auto-generated with format JOB-YYYYMMDD-XXXXX",
+        "method": "POST",
+        "path": "/jobs",
+        "request": {
+          "description": "Deliver package to customer in Jakarta",
+          "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+          "pickup": {
+            "address": "Warehouse, Jl. Sudirman No. 123, Jakarta",
+            "lat": -6.2088,
+            "lng": 106.8456
+          },
+          "delivery": {
+            "address": "Customer Office, Jl. Gatot Subroto No. 456, Jakarta",
+            "lat": -6.225,
+            "lng": 106.799,
+            "polyline": "enc:{wsiFljiiBrB~A...",
+            "distanceKm": 5.2,
+            "estimateDuration": 15
+          }
+        },
+        "response": {
+          "message": "Job created successfully",
+          "data": {
+            "uuid": "550e8400-e29b-41d4-a716-446655440000",
+            "jobCode": "JOB-20260114-00001",
+            "jobStatus": "planned",
+            "description": "Deliver package to customer in Jakarta",
+            "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+            "createdAt": "2026-01-14T16:30:00Z",
+            "updatedAt": "2026-01-14T16:30:00Z",
+            "pickup": {
+              "uuid": "660e8400-e29b-41d4-a716-446655440001",
+              "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+              "address": "Warehouse, Jl. Sudirman No. 123, Jakarta",
+              "lat": -6.2088,
+              "lng": 106.8456,
+              "createdAt": "2026-01-14T16:30:00Z",
+              "updatedAt": "2026-01-14T16:30:00Z"
+            },
+            "delivery": {
+              "uuid": "770e8400-e29b-41d4-a716-446655440002",
+              "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+              "address": "Customer Office, Jl. Gatot Subroto No. 456, Jakarta",
+              "lat": -6.225,
+              "lng": 106.799,
+              "polyline": "enc:{wsiFljiiBrB~A...",
+              "distanceKm": 5.2,
+              "eta": null,
+              "etd": null,
+              "estimateDuration": 15,
+              "atd": null,
+              "ata": null,
+              "actualDuration": null,
+              "createdAt": "2026-01-14T16:30:00Z",
+              "updatedAt": "2026-01-14T16:30:00Z"
+            }
+          }
+        }
+      },
+
+      "getAll": {
+        "description": "Get all jobs (excluding deleted ones)",
+        "method": "GET",
+        "path": "/jobs",
+        "response": {
+          "data": [
+            {
+              "uuid": "550e8400-e29b-41d4-a716-446655440000",
+              "jobCode": "JOB-20260114-00001",
+              "jobStatus": "planned",
+              "description": "Deliver package to customer in Jakarta",
+              "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+              "createdAt": "2026-01-14T16:30:00Z",
+              "updatedAt": "2026-01-14T16:30:00Z",
+              "pickup": {
+                "uuid": "660e8400-e29b-41d4-a716-446655440001",
+                "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+                "address": "Warehouse, Jl. Sudirman No. 123, Jakarta",
+                "lat": -6.2088,
+                "lng": 106.8456,
+                "createdAt": "2026-01-14T16:30:00Z",
+                "updatedAt": "2026-01-14T16:30:00Z"
+              },
+              "delivery": {
+                "uuid": "770e8400-e29b-41d4-a716-446655440002",
+                "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+                "address": "Customer Office, Jl. Gatot Subroto No. 456, Jakarta",
+                "lat": -6.225,
+                "lng": 106.799,
+                "polyline": "enc:{wsiFljiiBrB~A...",
+                "distanceKm": 5.2,
+                "eta": null,
+                "etd": null,
+                "estimateDuration": 15,
+                "atd": null,
+                "ata": null,
+                "actualDuration": null,
+                "createdAt": "2026-01-14T16:30:00Z",
+                "updatedAt": "2026-01-14T16:30:00Z"
+              },
+              "assignee": {
+                "uuid": "123e4567-e89b-12d3-a456-426614174000",
+                "fullName": "John Doe",
+                "email": "john@example.com"
+              }
+            }
+          ],
+          "total": 1
+        }
+      },
+
+      "getDetails": {
+        "description": "Get job details (from Redis cache if available, otherwise from database)",
+        "method": "GET",
+        "path": "/jobs/550e8400-e29b-41d4-a716-446655440000",
+        "response": {
+          "data": {
+            "uuid": "550e8400-e29b-41d4-a716-446655440000",
+            "jobCode": "JOB-20260114-00001",
+            "jobStatus": "planned",
+            "description": "Deliver package to customer in Jakarta",
+            "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+            "createdAt": "2026-01-14T16:30:00Z",
+            "updatedAt": "2026-01-14T16:30:00Z",
+            "pickup": {
+              "uuid": "660e8400-e29b-41d4-a716-446655440001",
+              "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+              "address": "Warehouse, Jl. Sudirman No. 123, Jakarta",
+              "lat": -6.2088,
+              "lng": 106.8456,
+              "createdAt": "2026-01-14T16:30:00Z",
+              "updatedAt": "2026-01-14T16:30:00Z"
+            },
+            "delivery": {
+              "uuid": "770e8400-e29b-41d4-a716-446655440002",
+              "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+              "address": "Customer Office, Jl. Gatot Subroto No. 456, Jakarta",
+              "lat": -6.225,
+              "lng": 106.799,
+              "polyline": "enc:{wsiFljiiBrB~A...",
+              "distanceKm": 5.2,
+              "eta": null,
+              "etd": null,
+              "estimateDuration": 15,
+              "atd": null,
+              "ata": null,
+              "actualDuration": null,
+              "createdAt": "2026-01-14T16:30:00Z",
+              "updatedAt": "2026-01-14T16:30:00Z"
+            },
+            "assignee": {
+              "uuid": "123e4567-e89b-12d3-a456-426614174000",
+              "fullName": "John Doe",
+              "email": "john@example.com"
+            }
+          },
+          "source": "cache"
+        }
+      },
+
+      "delete": {
+        "description": "Soft delete a job (change status to deleted and remove from cache)",
+        "method": "DELETE",
+        "path": "/jobs/550e8400-e29b-41d4-a716-446655440000",
+        "response": {
+          "message": "Job deleted successfully",
+          "data": {
+            "uuid": "550e8400-e29b-41d4-a716-446655440000",
+            "jobCode": "JOB-20260114-00001",
+            "jobStatus": "deleted",
+            "description": "Deliver package to customer in Jakarta",
+            "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+            "createdAt": "2026-01-14T16:30:00Z",
+            "updatedAt": "2026-01-14T16:31:00Z"
+          }
+        }
+      },
+
+      "start": {
+        "description": "Start a job (change status to in_progress, cache details, store current location)",
+        "method": "POST",
+        "path": "/jobs/550e8400-e29b-41d4-a716-446655440000/start",
+        "request": {
+          "lat": -6.215,
+          "lng": 106.82
+        },
+        "response": {
+          "message": "Job started successfully",
+          "data": {
+            "uuid": "550e8400-e29b-41d4-a716-446655440000",
+            "jobCode": "JOB-20260114-00001",
+            "jobStatus": "in_progress",
+            "description": "Deliver package to customer in Jakarta",
+            "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+            "createdAt": "2026-01-14T16:30:00Z",
+            "updatedAt": "2026-01-14T16:31:30Z",
+            "pickup": {
+              "uuid": "660e8400-e29b-41d4-a716-446655440001",
+              "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+              "address": "Warehouse, Jl. Sudirman No. 123, Jakarta",
+              "lat": -6.2088,
+              "lng": 106.8456,
+              "createdAt": "2026-01-14T16:30:00Z",
+              "updatedAt": "2026-01-14T16:30:00Z"
+            },
+            "delivery": {
+              "uuid": "770e8400-e29b-41d4-a716-446655440002",
+              "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+              "address": "Customer Office, Jl. Gatot Subroto No. 456, Jakarta",
+              "lat": -6.225,
+              "lng": 106.799,
+              "polyline": "enc:{wsiFljiiBrB~A...",
+              "distanceKm": 5.2,
+              "eta": null,
+              "etd": null,
+              "estimateDuration": 15,
+              "atd": null,
+              "ata": null,
+              "actualDuration": null,
+              "createdAt": "2026-01-14T16:30:00Z",
+              "updatedAt": "2026-01-14T16:30:00Z"
+            }
+          }
+        },
+        "redisStored": {
+          "key": "details_550e8400-e29b-41d4-a716-446655440000",
+          "value": "job details object",
+          "key2": "currentLoc_550e8400-e29b-41d4-a716-446655440000",
+          "value2": {
+            "lat": -6.215,
+            "lng": 106.82
+          }
+        }
+      }
+    },
+
+    "tracking": {
+      "pushLocation": {
+        "description": "Push current location (updates Redis location key)",
+        "method": "POST",
+        "path": "/tracking/push-location",
+        "request": {
+          "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+          "lat": -6.216,
+          "lng": 106.822
+        },
+        "response": {
+          "message": "Location updated successfully",
+          "data": {
+            "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+            "lat": -6.216,
+            "lng": 106.822,
+            "timestamp": "2026-01-14T16:32:00Z"
+          }
+        },
+        "redisUpdated": {
+          "key": "currentLoc_550e8400-e29b-41d4-a716-446655440000",
+          "value": {
+            "lat": -6.216,
+            "lng": 106.822,
+            "timestamp": "2026-01-14T16:32:00Z"
+          }
+        }
+      },
+
+      "getCurrentLocation": {
+        "description": "Get current location of a job (from Redis)",
+        "method": "GET",
+        "path": "/tracking/550e8400-e29b-41d4-a716-446655440000/location",
+        "response": {
+          "data": {
+            "lat": -6.216,
+            "lng": 106.822,
+            "timestamp": "2026-01-14T16:32:00Z"
+          }
+        }
+      }
+    }
+  },
+
+  "notes": {
+    "jobCodeGeneration": {
+      "format": "JOB-YYYYMMDD-XXXXX",
+      "example": "JOB-20260114-00001",
+      "description": "Auto-generated on job creation, sequence number increments per day"
+    },
+    "redis_keys": [
+      "details_{job_uuid} - Stores full job details when job starts",
+      "currentLoc_{job_uuid} - Stores current lat/lng of the delivery person"
+    ],
+    "job_status_flow": [
+      "planned - Initial status when job is created",
+      "in_progress - After job is started",
+      "finished - When delivery is complete",
+      "closed - Final status",
+      "deleted - When job is deleted"
+    ],
+    "caching_strategy": {
+      "description": "Job details are cached in Redis for faster retrieval",
+      "ttl": "No TTL set - cache persists until manually deleted",
+      "invalidation": "Redis cache is cleared when job is deleted"
+    }
+  }
+}

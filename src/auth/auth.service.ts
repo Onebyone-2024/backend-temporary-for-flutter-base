@@ -19,25 +19,11 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const { email, password, fullName } = registerDto;
 
-    // Check if user already exists
-    try {
-      await this.usersService.findOneByEmail(email);
-      throw new BadRequestException('User with this email already exists');
-    } catch (error) {
-      if (error.status === 400) {
-        throw error;
-      }
-      // User doesn't exist, continue
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const user = await this.usersService.create({
+    // Create user (password hashing and duplicate check handled in UsersService)
+    const user = await this.usersService.createUser({
       fullName,
       email,
-      password: hashedPassword,
+      password,
     });
 
     // Generate JWT token
@@ -65,7 +51,10 @@ export class AuthService {
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await this.usersService.validatePassword(
+      password,
+      user.password,
+    );
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
@@ -105,6 +94,6 @@ export class AuthService {
   }
 
   async validateUser(uuid: string) {
-    return await this.usersService.findOne(uuid);
+    return await this.usersService.findOneById(uuid);
   }
 }

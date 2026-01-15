@@ -1,465 +1,464 @@
-# CRUD API Documentation
+# Job Tracking Backend API - Documentation
 
-## Overview
+## ✅ Swagger Status
 
-This document provides a comprehensive guide to all CRUD APIs available in the backend.
+**Status**: ✓ **Installed and Running**
+
+Swagger/OpenAPI documentation tersedia di: **http://localhost:3000/api**
+
+### Packages Terinstall:
+
+- `@nestjs/swagger`: ^7.4.0
+- `swagger-ui-express`: ^5.0.1
 
 ---
 
-## 1. Users API
+## 📋 API Endpoints Summary
 
-### Base URL: `/users`
+### Health & Status (Public)
 
-#### Create User
+| Method | Path      | Description                      |
+| ------ | --------- | -------------------------------- |
+| GET    | `/`       | Welcome message                  |
+| GET    | `/health` | Health check dengan Redis status |
 
-- **Method:** POST
-- **Endpoint:** `/users`
-- **Body:**
+### Authentication (Public)
+
+| Method | Path             | Description                  |
+| ------ | ---------------- | ---------------------------- |
+| POST   | `/auth/register` | Register user baru           |
+| POST   | `/auth/login`    | Login dan dapatkan JWT token |
+
+### Jobs Management (Public)
+
+| Method | Path                   | Description                             |
+| ------ | ---------------------- | --------------------------------------- |
+| POST   | `/jobs`                | Buat job baru dengan pickup & delivery  |
+| GET    | `/jobs`                | Dapatkan semua jobs (exclude deleted)   |
+| GET    | `/jobs/:jobUuid`       | Dapatkan job details (dari Redis cache) |
+| DELETE | `/jobs/:jobUuid`       | Soft delete job                         |
+| POST   | `/jobs/:jobUuid/start` | Start job (status → in_progress)        |
+
+### Tracking (Public)
+
+| Method | Path                          | Description           |
+| ------ | ----------------------------- | --------------------- |
+| POST   | `/tracking/push-location`     | Push current location |
+| GET    | `/tracking/:jobUuid/location` | Get current location  |
+
+---
+
+## 📦 Sample Payloads
+
+### 1. Register User
+
+**POST** `/auth/register`
+
+**Request:**
 
 ```json
 {
-  "fullName": "John Doe",
   "email": "john@example.com",
-  "password": "password123",
-  "status": "online"
+  "fullName": "John Doe",
+  "password": "securePassword123"
 }
 ```
 
-- **Response:** User object with uuid, fullName, email, status, createdAt
-
-#### Get All Users
-
-- **Method:** GET
-- **Endpoint:** `/users`
-- **Response:** Array of user objects
-
-#### Get User by UUID
-
-- **Method:** GET
-- **Endpoint:** `/users/{uuid}`
-- **Response:** User object
-
-#### Update User
-
-- **Method:** PATCH
-- **Endpoint:** `/users/{uuid}`
-- **Body:** Partial user object
-- **Response:** Updated user object
-
-#### Delete User
-
-- **Method:** DELETE
-- **Endpoint:** `/users/{uuid}`
-- **Response:** 204 No Content
-
----
-
-## 2. Direct Chats API
-
-### Base URL: `/direct-chats`
-
-#### Create Direct Chat
-
-- **Method:** POST
-- **Endpoint:** `/direct-chats`
-- **Body:**
+**Response:**
 
 ```json
 {
-  "uuid1": "user-uuid-1",
-  "uuid2": "user-uuid-2"
+  "message": "User registered successfully",
+  "user": {
+    "uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "fullName": "John Doe",
+    "email": "john@example.com"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-- **Response:** DirectChat object with user details
-
-#### Get All Direct Chats
-
-- **Method:** GET
-- **Endpoint:** `/direct-chats`
-- **Response:** Array of DirectChat objects
-
-#### Get Direct Chat by UUID
-
-- **Method:** GET
-- **Endpoint:** `/direct-chats/{uuid}`
-- **Response:** DirectChat object
-
-#### Find Direct Chat Between Two Users
-
-- **Method:** GET
-- **Endpoint:** `/direct-chats/between/{uuid1}/{uuid2}`
-- **Response:** DirectChat object or null
-
-#### Update Direct Chat
-
-- **Method:** PATCH
-- **Endpoint:** `/direct-chats/{uuid}`
-- **Body:** Partial DirectChat object
-- **Response:** Updated DirectChat object
-
-#### Delete Direct Chat
-
-- **Method:** DELETE
-- **Endpoint:** `/direct-chats/{uuid}`
-- **Response:** 204 No Content
-
 ---
 
-## 3. Groups API
+### 2. Login User
 
-### Base URL: `/groups`
+**POST** `/auth/login`
 
-#### Create Group
-
-- **Method:** POST
-- **Endpoint:** `/groups`
-- **Body:**
+**Request:**
 
 ```json
 {
-  "name": "Friends Group",
-  "photo": "url-to-photo"
+  "email": "john@example.com",
+  "password": "securePassword123"
 }
 ```
 
-- **Response:** Group object with members and recent chats
-
-#### Get All Groups
-
-- **Method:** GET
-- **Endpoint:** `/groups`
-- **Response:** Array of Group objects with members and chats
-
-#### Get Group by UUID
-
-- **Method:** GET
-- **Endpoint:** `/groups/{uuid}`
-- **Response:** Group object with all members and chats
-
-#### Update Group
-
-- **Method:** PATCH
-- **Endpoint:** `/groups/{uuid}`
-- **Body:** Partial group object
-- **Response:** Updated Group object
-
-#### Delete Group
-
-- **Method:** DELETE
-- **Endpoint:** `/groups/{uuid}`
-- **Response:** 204 No Content
-
----
-
-## 4. Group Members API
-
-### Base URL: `/group-members`
-
-#### Add Member to Group
-
-- **Method:** POST
-- **Endpoint:** `/group-members`
-- **Body:**
+**Response:**
 
 ```json
 {
-  "groupUuid": "group-uuid",
-  "userUuid": "user-uuid"
+  "message": "Login successful",
+  "user": {
+    "uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "fullName": "John Doe",
+    "email": "john@example.com",
+    "status": null
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-- **Response:** GroupMember object with user details
-
-#### Get All Group Members
-
-- **Method:** GET
-- **Endpoint:** `/group-members`
-- **Response:** Array of GroupMember objects
-
-#### Get Members of a Specific Group
-
-- **Method:** GET
-- **Endpoint:** `/group-members/group/{groupUuid}`
-- **Response:** Array of GroupMember objects for the group
-
-#### Get Group Member by UUID
-
-- **Method:** GET
-- **Endpoint:** `/group-members/{uuid}`
-- **Response:** GroupMember object
-
-#### Remove Member from Group (by Member UUID)
-
-- **Method:** DELETE
-- **Endpoint:** `/group-members/{uuid}`
-- **Response:** 204 No Content
-
-#### Remove Member from Group (by Group and User UUID)
-
-- **Method:** DELETE
-- **Endpoint:** `/group-members/group/{groupUuid}/user/{userUuid}`
-- **Response:** 204 No Content
-
 ---
 
-## 5. Group Chats API
+### 3. Create Job
 
-### Base URL: `/group-chats`
+**POST** `/jobs`
 
-#### Create Group Chat Message
-
-- **Method:** POST
-- **Endpoint:** `/group-chats`
-- **Body:**
+**Request:**
 
 ```json
 {
-  "textMessage": "Hello everyone!",
-  "createdBy": "user-uuid",
-  "groupUuid": "group-uuid"
+  "description": "Deliver package to customer in Jakarta",
+  "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+  "pickup": {
+    "address": "Warehouse, Jl. Sudirman No. 123, Jakarta",
+    "lat": -6.2088,
+    "lng": 106.8456
+  },
+  "delivery": {
+    "address": "Customer Office, Jl. Gatot Subroto No. 456, Jakarta",
+    "lat": -6.225,
+    "lng": 106.799,
+    "polyline": "enc:{wsiFljiiBrB~A...",
+    "distanceKm": 5.2,
+    "estimateDuration": 15
+  }
 }
 ```
 
-- **Response:** GroupChat object with creator and group info
+**Note:** `jobCode` di-generate otomatis dengan format `JOB-YYYYMMDD-XXXXX` (e.g., JOB-20260114-00001)
 
-#### Get All Group Chats
-
-- **Method:** GET
-- **Endpoint:** `/group-chats`
-- **Response:** Array of GroupChat objects
-
-#### Get Chat Messages for a Specific Group
-
-- **Method:** GET
-- **Endpoint:** `/group-chats/group/{groupUuid}`
-- **Query Parameters:**
-  - `limit` (optional): Number of messages to retrieve (default: 50)
-- **Response:** Array of GroupChat objects for the group
-
-#### Get Group Chat by UUID
-
-- **Method:** GET
-- **Endpoint:** `/group-chats/{uuid}`
-- **Response:** GroupChat object
-
-#### Update Group Chat
-
-- **Method:** PATCH
-- **Endpoint:** `/group-chats/{uuid}`
-- **Body:** Partial GroupChat object
-- **Response:** Updated GroupChat object
-
-#### Delete Group Chat
-
-- **Method:** DELETE
-- **Endpoint:** `/group-chats/{uuid}`
-- **Response:** 204 No Content
-
----
-
-## 6. Reels API
-
-### Base URL: `/reels`
-
-#### Create Reel
-
-- **Method:** POST
-- **Endpoint:** `/reels`
-- **Body:**
+**Response:**
 
 ```json
 {
-  "description": "My awesome reel",
-  "source": "url-to-video",
-  "createdBy": "user-uuid"
+  "message": "Job created successfully",
+  "data": {
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "jobCode": "JOB-2026-001",
+    "jobStatus": "planned",
+    "description": "Deliver package to customer in Jakarta",
+    "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+    "createdAt": "2026-01-14T16:30:00Z",
+    "updatedAt": "2026-01-14T16:30:00Z",
+    "pickup": {
+      "uuid": "660e8400-e29b-41d4-a716-446655440001",
+      "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+      "address": "Warehouse, Jl. Sudirman No. 123, Jakarta",
+      "lat": -6.2088,
+      "lng": 106.8456,
+      "createdAt": "2026-01-14T16:30:00Z",
+      "updatedAt": "2026-01-14T16:30:00Z"
+    },
+    "delivery": {
+      "uuid": "770e8400-e29b-41d4-a716-446655440002",
+      "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+      "address": "Customer Office, Jl. Gatot Subroto No. 456, Jakarta",
+      "lat": -6.225,
+      "lng": 106.799,
+      "polyline": "enc:{wsiFljiiBrB~A...",
+      "distanceKm": 5.2,
+      "eta": null,
+      "etd": null,
+      "estimateDuration": 15,
+      "atd": null,
+      "ata": null,
+      "actualDuration": null,
+      "createdAt": "2026-01-14T16:30:00Z",
+      "updatedAt": "2026-01-14T16:30:00Z"
+    }
+  }
 }
 ```
 
-- **Response:** Reel object with creator info
-
-#### Get All Reels
-
-- **Method:** GET
-- **Endpoint:** `/reels`
-- **Response:** Array of Reel objects
-
-#### Get Reels by User
-
-- **Method:** GET
-- **Endpoint:** `/reels/user/{createdBy}`
-- **Response:** Array of Reel objects created by the user
-
-#### Get Reel by UUID
-
-- **Method:** GET
-- **Endpoint:** `/reels/{uuid}`
-- **Response:** Reel object
-
-#### Update Reel
-
-- **Method:** PATCH
-- **Endpoint:** `/reels/{uuid}`
-- **Body:** Partial Reel object
-- **Response:** Updated Reel object
-
-#### Delete Reel
-
-- **Method:** DELETE
-- **Endpoint:** `/reels/{uuid}`
-- **Response:** 204 No Content
-
 ---
 
-## 7. Task Lists API
+### 4. Get All Jobs
 
-### Base URL: `/task-lists`
+**GET** `/jobs`
 
-#### Create Task
-
-- **Method:** POST
-- **Endpoint:** `/task-lists`
-- **Body:**
+**Response:**
 
 ```json
 {
-  "uuidUser": "user-uuid",
-  "task": "Buy groceries",
-  "isCompleted": false
+  "data": [
+    {
+      "uuid": "550e8400-e29b-41d4-a716-446655440000",
+      "jobCode": "JOB-2026-001",
+      "jobStatus": "planned",
+      "description": "Deliver package to customer in Jakarta",
+      "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+      "createdAt": "2026-01-14T16:30:00Z",
+      "updatedAt": "2026-01-14T16:30:00Z",
+      "pickup": {...},
+      "delivery": {...},
+      "assignee": {
+        "uuid": "123e4567-e89b-12d3-a456-426614174000",
+        "fullName": "John Doe",
+        "email": "john@example.com"
+      }
+    }
+  ],
+  "total": 1
 }
 ```
 
-- **Response:** TaskList object with user info
-
-#### Get All Tasks
-
-- **Method:** GET
-- **Endpoint:** `/task-lists`
-- **Response:** Array of TaskList objects
-
-#### Get Tasks for a Specific User
-
-- **Method:** GET
-- **Endpoint:** `/task-lists/user/{uuidUser}`
-- **Response:** Array of TaskList objects for the user
-
-#### Get Task by UUID
-
-- **Method:** GET
-- **Endpoint:** `/task-lists/{uuid}`
-- **Response:** TaskList object
-
-#### Update Task
-
-- **Method:** PATCH
-- **Endpoint:** `/task-lists/{uuid}`
-- **Body:** Partial TaskList object
-- **Response:** Updated TaskList object
-
-#### Delete Task
-
-- **Method:** DELETE
-- **Endpoint:** `/task-lists/{uuid}`
-- **Response:** 204 No Content
-
 ---
 
-## Response Format
+### 5. Get Job Details
 
-### Success Response
+**GET** `/jobs/550e8400-e29b-41d4-a716-446655440000`
+
+**Response:**
 
 ```json
 {
-  "uuid": "unique-identifier",
-  "field1": "value1",
-  "field2": "value2",
-  "createdAt": "2024-12-02T10:30:00Z"
+  "data": {
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "jobCode": "JOB-2026-001",
+    "jobStatus": "planned",
+    "description": "Deliver package to customer in Jakarta",
+    "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+    "createdAt": "2026-01-14T16:30:00Z",
+    "updatedAt": "2026-01-14T16:30:00Z",
+    "pickup": {...},
+    "delivery": {...},
+    "assignee": {...}
+  },
+  "source": "cache"
 }
 ```
 
-### Error Response
+---
+
+### 6. Start Job
+
+**POST** `/jobs/550e8400-e29b-41d4-a716-446655440000/start`
+
+**Request:**
 
 ```json
 {
-  "statusCode": 400,
-  "message": "Error message",
-  "error": "BadRequest"
+  "lat": -6.215,
+  "lng": 106.82
 }
 ```
 
-### Common HTTP Status Codes
+**Response:**
 
-- `200 OK`: Successful GET/PATCH request
-- `201 Created`: Successful POST request
-- `204 No Content`: Successful DELETE request
-- `400 Bad Request`: Validation error
-- `404 Not Found`: Resource not found
-- `500 Internal Server Error`: Server error
+```json
+{
+  "message": "Job started successfully",
+  "data": {
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "jobCode": "JOB-2026-001",
+    "jobStatus": "in_progress",
+    "description": "Deliver package to customer in Jakarta",
+    "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+    "createdAt": "2026-01-14T16:30:00Z",
+    "updatedAt": "2026-01-14T16:31:30Z",
+    "pickup": {...},
+    "delivery": {...}
+  }
+}
+```
+
+**Redis Keys Created:**
+
+```
+key: details_550e8400-e29b-41d4-a716-446655440000
+value: {full job details object}
+
+key: currentLoc_550e8400-e29b-41d4-a716-446655440000
+value: {
+  "lat": -6.2150,
+  "lng": 106.8200
+}
+```
 
 ---
 
-## Authentication & Validation
+### 7. Delete Job
 
-### Validators Used
+**DELETE** `/jobs/550e8400-e29b-41d4-a716-446655440000`
 
-- `@IsUUID()`: Validates UUID format
-- `@IsEmail()`: Validates email format
-- `@IsNotEmpty()`: Validates required fields
-- `@IsString()`: Validates string type
-- `@IsBoolean()`: Validates boolean type
-- `@MinLength()`: Validates minimum length
-- `@IsOptional()`: Marks field as optional
+**Response:**
 
-### Error Handling
-
-All endpoints include proper error handling with:
-
-- 404 Not Found for missing resources
-- 400 Bad Request for invalid input
-- 409 Conflict for duplicate entries (e.g., duplicate group members)
+```json
+{
+  "message": "Job deleted successfully",
+  "data": {
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "jobCode": "JOB-2026-001",
+    "jobStatus": "deleted",
+    "description": "Deliver package to customer in Jakarta",
+    "assignedTo": "123e4567-e89b-12d3-a456-426614174000",
+    "createdAt": "2026-01-14T16:30:00Z",
+    "updatedAt": "2026-01-14T16:31:00Z"
+  }
+}
+```
 
 ---
 
-## Example Usage
+### 8. Push Location
 
-### Create a Group and Add Members
+**POST** `/tracking/push-location`
+
+**Request:**
+
+```json
+{
+  "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+  "lat": -6.216,
+  "lng": 106.822
+}
+```
+
+**Response:**
+
+```json
+{
+  "message": "Location updated successfully",
+  "data": {
+    "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+    "lat": -6.216,
+    "lng": 106.822,
+    "timestamp": "2026-01-14T16:32:00Z"
+  }
+}
+```
+
+**Redis Key Updated:**
+
+```
+key: currentLoc_550e8400-e29b-41d4-a716-446655440000
+value: {
+  "lat": -6.2160,
+  "lng": 106.8220,
+  "timestamp": "2026-01-14T16:32:00Z"
+}
+```
+
+---
+
+### 9. Get Current Location
+
+**GET** `/tracking/550e8400-e29b-41d4-a716-446655440000/location`
+
+**Response:**
+
+```json
+{
+  "data": {
+    "lat": -6.216,
+    "lng": 106.822,
+    "timestamp": "2026-01-14T16:32:00Z"
+  }
+}
+```
+
+---
+
+## 🗝️ Redis Keys Reference
+
+| Key Pattern             | Value                   | TTL    | Usage                                |
+| ----------------------- | ----------------------- | ------ | ------------------------------------ |
+| `details_{job_uuid}`    | Full job object         | No TTL | Cache job details saat job di-start  |
+| `currentLoc_{job_uuid}` | `{lat, lng, timestamp}` | No TTL | Store current location saat tracking |
+
+---
+
+## 📄 Testing Tools
+
+### 1. Swagger UI
+
+- URL: http://localhost:3000/api
+- Langsung test API dari browser
+
+### 2. Postman Collection
+
+- File: `JOB_TRACKING_API.postman_collection.json`
+- Import ke Postman dan gunakan
+
+### 3. CURL Commands
+
+- File: `TEST_API_CURL.sh`
+- Jalankan: `bash TEST_API_CURL.sh`
+
+### 4. Sample Payloads
+
+- File: `API_SAMPLE_PAYLOADS.json`
+- Referensi lengkap semua endpoint
+
+---
+
+## 🚀 Getting Started
+
+### 1. Setup Environment
 
 ```bash
-# 1. Create a group
-curl -X POST http://localhost:3000/groups \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "My Group",
-    "photo": "https://example.com/photo.jpg"
-  }'
+cp .env.example .env
+# Edit .env dengan credentials Anda
+```
 
-# 2. Add members to the group
-curl -X POST http://localhost:3000/group-members \
-  -H "Content-Type: application/json" \
-  -d '{
-    "groupUuid": "group-uuid-from-step-1",
-    "userUuid": "user-uuid-1"
-  }'
+### 2. Setup Database
 
-# 3. Send a message to the group
-curl -X POST http://localhost:3000/group-chats \
-  -H "Content-Type: application/json" \
-  -d '{
-    "textMessage": "Hello everyone!",
-    "createdBy": "user-uuid-1",
-    "groupUuid": "group-uuid-from-step-1"
-  }'
+```bash
+npx prisma migrate dev --name init
+```
 
-# 4. Get all messages in the group
-curl http://localhost:3000/group-chats/group/group-uuid-from-step-1
+### 3. Start Development Server
+
+```bash
+npm run start:dev
+```
+
+### 4. Access Swagger
+
+```
+http://localhost:3000/api
 ```
 
 ---
 
-## Notes
+## 📊 Job Status Flow
 
-- All UUIDs should be in standard UUID v4 format
-- Timestamps are returned in ISO 8601 format
-- Pagination is not yet implemented; use query parameters for filtering
-- All endpoints require valid input validation
-- Deleted resources cascade to related entities (enforced at database level)
+```
+planned
+   ↓
+in_progress (saat /jobs/:id/start dipanggil)
+   ↓
+finished
+   ↓
+closed
+
+deleted (soft delete - tidak dihitung dalam get all jobs)
+```
+
+---
+
+## 🔍 Key Features
+
+✅ **Redis Caching** - Job details dan location di-cache di Redis  
+✅ **Real-time Location Tracking** - Push dan retrieve location dari Redis  
+✅ **Soft Delete** - Job tidak benar-benar dihapus, hanya status berubah  
+✅ **Automatic Relationships** - Pickup & Delivery dibuat otomatis saat job dibuat  
+✅ **Redis Health Check** - Status Redis ditampilkan di /health  
+✅ **Swagger Documentation** - Semua endpoint terdokumentasi di Swagger
+
+---
+
+## 📧 Support
+
+Untuk pertanyaan atau bug report, silakan buat issue di repository.

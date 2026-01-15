@@ -10,6 +10,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Seed configuration
+generator seed {
+  provider = "prisma-seeders"
+  output   = "./seeders"
+}
+
+enum JobStatus {
+  planned
+  in_progress
+  finished
+  closed
+  deleted
+}
+
 model User {
   uuid      String   @id @default(uuid()) @db.Uuid
   fullName  String   @map("full_name")
@@ -17,120 +31,60 @@ model User {
   status    String?
   password  String
   createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  directChatsAsUser1     DirectChat[] @relation("User1DirectChats")
-  directChatsAsUser2     DirectChat[] @relation("User2DirectChats")
-  directChatMessages     DirectChatMessage[] @relation("DirectChatMessagesSent")
-  groupChats             GroupChat[]
-  groupMembers           GroupMember[] @relation("GroupMembers")
-  reels                  Reel[]
-  taskLists              TaskList[]
+  jobs      Job[]
 
   @@map("users")
 }
 
-model DirectChat {
+model Job {
+  uuid        String    @id @default(uuid()) @db.Uuid
+  jobCode     String    @unique @map("job_code")
+  jobStatus   JobStatus @default(planned) @map("job_status")
+  description String?
+  assignedTo  String?   @map("assigned_to") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  assignee User?     @relation(fields: [assignedTo], references: [uuid], onDelete: SetNull)
+  pickup   Pickup?
+  delivery Delivery?
+
+  @@map("jobs") 
+}
+
+model Pickup {
   uuid      String   @id @default(uuid()) @db.Uuid
-  uuid1     String   @map("uuid_1") @db.Uuid
-  uuid2     String   @map("uuid_2") @db.Uuid
+  jobUuid   String   @unique @map("job_uuid") @db.Uuid
+  address   String
+  lat       Float
+  lng       Float
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  // Relations
-  user1 User @relation("User1DirectChats", fields: [uuid1], references: [uuid], onDelete: Cascade)
-  user2 User @relation("User2DirectChats", fields: [uuid2], references: [uuid], onDelete: Cascade)
-  messages DirectChatMessage[]
+  job Job @relation(fields: [jobUuid], references: [uuid], onDelete: Cascade)
 
-  @@unique([uuid1, uuid2])
-  @@map("direct_chats")
+  @@map("pickups") 
 }
 
-model DirectChatMessage {
-  uuid           String   @id @default(uuid()) @db.Uuid
-  directChatUuid String   @map("direct_chat_uuid") @db.Uuid
-  senderUuid     String   @map("sender_uuid") @db.Uuid
-  message        String   @db.Text
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+model Delivery {
+  uuid              String    @id @default(uuid()) @db.Uuid
+  jobUuid           String    @unique @map("job_uuid") @db.Uuid
+  address           String
+  lat               Float
+  lng               Float
+  polyline          String?
+  distanceKm        Float?    @map("distance_km")
+  eta               DateTime? @map("eta")
+  etd               DateTime? @map("etd")
+  estimateDuration  Int?      @map("estimate_duration") // dalam menit
+  atd               DateTime? @map("atd") // Actual Time of Departure
+  ata               DateTime? @map("ata") // Actual Time of Arrival
+  actualDuration    Int?      @map("actual_duration") // dalam menit
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  // Relations
-  directChat DirectChat @relation(fields: [directChatUuid], references: [uuid], onDelete: Cascade)
-  sender     User       @relation("DirectChatMessagesSent", fields: [senderUuid], references: [uuid], onDelete: Cascade)
+  job Job @relation(fields: [jobUuid], references: [uuid], onDelete: Cascade)
 
-  @@index([directChatUuid])
-  @@index([senderUuid])
-  @@map("direct_chat_messages")
+  @@map("deliveries") 
 }
-
-model Group {
-  uuid       String      @id @default(uuid()) @db.Uuid
-  name       String
-  photo      String?
-  createdAt  DateTime    @default(now()) @map("created_at")
-
-  // Relations
-  groupChats GroupChat[]
-  members    GroupMember[]
-
-  @@map("groups")
-}
-
-model GroupMember {
-  uuid      String   @id @default(uuid()) @db.Uuid
-  groupUuid String   @map("group_uuid") @db.Uuid
-  userUuid  String   @map("user_uuid") @db.Uuid
-  joinedAt  DateTime @default(now()) @map("joined_at")
-
-  // Relations
-  group Group @relation(fields: [groupUuid], references: [uuid], onDelete: Cascade)
-  user  User  @relation("GroupMembers", fields: [userUuid], references: [uuid], onDelete: Cascade)
-
-  @@unique([groupUuid, userUuid])
-  @@map("group_members")
-}
-
-model GroupChat {
-  uuid        String   @id @default(uuid()) @db.Uuid
-  textMessage String   @map("text_message") @db.Text
-  createdAt   DateTime @default(now()) @map("created_at")
-  createdBy   String   @map("created_by") @db.Uuid
-  groupUuid   String   @map("group_uuid") @db.Uuid
-
-  // Relations
-  creator User  @relation(fields: [createdBy], references: [uuid], onDelete: Cascade)
-  group   Group @relation(fields: [groupUuid], references: [uuid], onDelete: Cascade)
-
-  @@map("group_chats")
-}
-
-model Reel {
-  uuid              String   @id @default(uuid()) @db.Uuid
-  description       String?  @db.Text
-  source            String                          // Google Drive file URL (preview URL)
-  previewUrl        String?  @map("preview_url")   // Google Drive preview URL for video player
-  downloadUrl       String?  @map("download_url")  // Google Drive download URL
-  googleDriveFileId String?  @map("google_drive_file_id")  // File ID from Google Drive
-  fileSize          Int?     @map("file_size")             // File size in bytes
-  mimeType          String?  @map("mime_type")             // e.g., video/mp4
-  fileName          String?  @map("file_name")             // UUID-based file name
-  createdAt         DateTime @default(now()) @map("created_at")
-  createdBy         String   @map("created_by") @db.Uuid
-
-  // Relations
-  creator User @relation(fields: [createdBy], references: [uuid], onDelete: Cascade)
-
-  @@map("reels")
-}
-
-model TaskList {
-  uuid        String   @id @default(uuid()) @db.Uuid
-  uuidUser    String   @map("uuid_user") @db.Uuid
-  task        String   @db.Text
-  isCompleted Boolean  @default(false) @map("is_completed")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  // Relations
-  user User @relation(fields: [uuidUser], references: [uuid], onDelete: Cascade)
-
-  @@map("task_lists")
-}
+ 
