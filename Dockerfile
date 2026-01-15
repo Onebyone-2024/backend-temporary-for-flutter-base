@@ -42,8 +42,8 @@ COPY prisma ./prisma
 # Install prod deps only
 RUN npm install --legacy-peer-deps --omit=dev
 
-# Generate Prisma Client in runtime environment
-RUN npx prisma generate
+# Copy node_modules/.prisma from builder (contains generated Prisma client)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Copy compiled app
 COPY --from=builder /app/dist ./dist
