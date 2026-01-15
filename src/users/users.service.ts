@@ -77,4 +77,21 @@ export class UsersService {
   async validatePassword(password: string, hashedPassword: string) {
     return bcrypt.compare(password, hashedPassword);
   }
+
+  async getAllUsers() {
+    const users = await this.prisma.user.findMany({
+      select: {
+        uuid: true,
+        email: true,
+        fullName: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return users;
+  }
 }

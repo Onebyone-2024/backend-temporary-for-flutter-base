@@ -63,4 +63,13 @@ export class AppController {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.sendFile(filePath);
   }
+
+  @Get('socket-local')
+  @ApiOperation({ summary: 'WebSocket test client' })
+  @ApiResponse({ status: 200, description: 'WebSocket test HTML page' })
+  socketLocal(@Res() res: Response) {
+    const filePath = path.join(__dirname, '..', 'public', 'socket-local.html');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.sendFile(filePath);
+  }
 }

@@ -24,12 +24,12 @@ import { SimulationModule } from './simulation/simulation.module';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, 'public'),
       exclude: [
-        '/api/*',
+        '/api/(.*)',
         '/health',
-        '/redis-*',
-        '/jobs/*',
-        '/tracking/*',
-        '/auth/*',
+        '/jobs/(.*)',
+        '/tracking/(.*)',
+        '/auth/(.*)',
+        '/users/(.*)',
       ],
     }),
 
