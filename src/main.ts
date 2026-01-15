@@ -1,10 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Setup WebSocket Adapter
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   // Enable CORS with all origins (whitelist all IPs)
   app.enableCors({
@@ -68,5 +72,6 @@ async function bootstrap() {
   console.log(
     `📚 Swagger Documentation available at: http://localhost:${port}/api`,
   );
+  console.log(`🔌 WebSocket available at: ws://localhost:${port}`);
 }
 bootstrap();

@@ -1,6 +1,14 @@
-import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  BadRequestException,
+  Res,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AppService } from './app.service';
+import { Response } from 'express';
+import * as path from 'path';
 
 @ApiTags('Health')
 @Controller()
@@ -45,5 +53,14 @@ export class AppController {
   })
   async getAllRedisKeysAndValues() {
     return this.appService.getAllRedisKeysAndValues();
+  }
+
+  @Get('socket')
+  @ApiOperation({ summary: 'WebSocket test client' })
+  @ApiResponse({ status: 200, description: 'WebSocket test HTML page' })
+  socket(@Res() res: Response) {
+    const filePath = path.join(__dirname, '..', 'public', 'socket.html');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.sendFile(filePath);
   }
 }

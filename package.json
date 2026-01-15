@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && cp -r src/public dist/src/public",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -29,7 +29,10 @@
     "@nestjs/mapped-types": "^2.0.4",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/platform-socket.io": "^11.1.11",
+    "@nestjs/serve-static": "^5.0.4",
     "@nestjs/swagger": "^7.4.0",
+    "@nestjs/websockets": "^11.1.11",
     "@prisma/client": "^5.7.1",
     "@types/bcrypt": "^6.0.0",
     "bcrypt": "^6.0.0",
@@ -40,6 +43,7 @@
     "redis": "^4.6.11",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.8.3",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
