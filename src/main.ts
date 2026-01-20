@@ -12,7 +12,12 @@ async function bootstrap() {
 
   // Enable CORS with all origins (whitelist all IPs)
   app.enableCors({
-    origin: '*', // Allow all origins
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:3000',
+    ],
     credentials: false,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type,Authorization',
