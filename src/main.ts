@@ -17,10 +17,18 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://127.0.0.1:5173',
       'http://127.0.0.1:3000',
+      '*',
     ],
     credentials: false,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization',
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Referer',
+      'User-Agent',
+    ],
+    exposedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Enable validation globally
