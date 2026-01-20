@@ -325,6 +325,26 @@ value: {
 }
 ```
 
+**Request (with polyline update - reroute scenario):**
+
+```json
+{
+  "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
+  "lat": -6.216,
+  "lng": 106.822,
+  "polyline": "enc:{newPolylineDataAfterReroute...}"
+}
+```
+
+**Note:**
+
+- `polyline` is optional
+- When provided, it will:
+  - Update polyline in database (Delivery table)
+  - Update Redis cache (`details_{jobUuid}`)
+  - Update current location Redis (`currentLoc_{jobUuid}`)
+  - Broadcast updated polyline via WebSocket to all subscribers
+
 **Response:**
 
 ```json
@@ -334,6 +354,7 @@ value: {
     "jobUuid": "550e8400-e29b-41d4-a716-446655440000",
     "lat": -6.216,
     "lng": 106.822,
+    "polyline": "enc:{wsiFljiiBrB~A...",
     "timestamp": "2026-01-14T16:32:00Z"
   }
 }
@@ -346,7 +367,28 @@ key: currentLoc_550e8400-e29b-41d4-a716-446655440000
 value: {
   "lat": -6.2160,
   "lng": 106.8220,
+  "polyline": "enc:{wsiFljiiBrB~A...",
   "timestamp": "2026-01-14T16:32:00Z"
+}
+
+// If polyline provided in request:
+key: details_550e8400-e29b-41d4-a716-446655440000
+value: {full job details with updated polyline}
+```
+
+**WebSocket Event Emitted:**
+
+```
+Event: location_update
+Room: tracking_{jobUuid}
+Data: {
+  jobId: "550e8400-e29b-41d4-a716-446655440000",
+  location: {
+    lat: -6.216,
+    lng: 106.822,
+    polyline: "enc:{wsiFljiiBrB~A...",
+    timestamp: "2026-01-14T16:32:00Z"
+  }
 }
 ```
 

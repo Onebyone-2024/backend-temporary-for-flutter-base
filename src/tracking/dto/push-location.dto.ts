@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber } from 'class-validator';
+import { IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class PushLocationDto {
   @ApiProperty({
@@ -22,4 +22,13 @@ export class PushLocationDto {
   })
   @IsNumber()
   lng: number;
+
+  @ApiProperty({
+    example: 'enc:{wsiFljiiBrB~A...',
+    description: 'Optional polyline for route update (reroute scenario)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  polyline?: string;
 }

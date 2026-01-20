@@ -119,6 +119,7 @@ export class SimulationService {
     // Validasi job exists
     const job = await this.prismaService.job.findUnique({
       where: { uuid: jobId },
+      include: { delivery: true },
     });
 
     if (!job) {
@@ -139,6 +140,9 @@ export class SimulationService {
       clearInterval(this.activeSimulations.get(jobId));
     }
 
+    // Get polyline from job delivery
+    const polyline = job.delivery?.polyline || 'Empty';
+
     // Start pushing locations
     let coordinateIndex = 0;
     const intervalDuration = (dto.intervalSeconds || 3) * 1000;
@@ -152,7 +156,7 @@ export class SimulationService {
           lat: coord.lat,
           lng: coord.lng,
           timestamp: new Date().toISOString(),
-          address: coord.name,
+          polyline,
         });
 
         console.log(

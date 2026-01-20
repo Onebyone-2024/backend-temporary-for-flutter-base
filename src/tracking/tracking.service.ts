@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { TrackingGateway } from './tracking.gateway';
@@ -15,20 +15,45 @@ export class TrackingService {
   ) {}
 
   async pushLocation(pushLocationDto: PushLocationDto) {
-    const { jobUuid, lat, lng } = pushLocationDto;
+    const { jobUuid, lat, lng, polyline: newPolyline } = pushLocationDto;
 
-    // Check if job exists
-    const job = await this.prisma.job.findUnique({
-      where: { uuid: jobUuid },
-    });
+    // Get polyline from job details in Redis
+    let polyline: string | null = null;
+    const detailsKey = `details_${jobUuid}`;
+    const cachedJob: any = await this.redis.getJson(detailsKey);
 
-    if (!job) {
-      throw new NotFoundException('Job not found');
+    if (cachedJob && cachedJob.delivery && cachedJob.delivery.polyline) {
+      polyline = cachedJob.delivery.polyline;
     }
+
+    // If new polyline provided (reroute scenario), update DB and Redis
+    if (newPolyline) {
+      this.logger.log(`🔄 Polyline update detected for job: ${jobUuid}`);
+
+      // Update polyline in database
+      await this.prisma.delivery.updateMany({
+        where: { jobUuid },
+        data: { polyline: newPolyline },
+      });
+
+      // Update polyline in cached job details
+      if (cachedJob && cachedJob.delivery) {
+        cachedJob.delivery.polyline = newPolyline;
+        await this.redis.setJson(detailsKey, cachedJob);
+      }
+
+      // Use new polyline
+      polyline = newPolyline;
+
+      this.logger.log(`✓ Polyline updated in DB and Redis for job: ${jobUuid}`);
+    }
+
+    // Create timestamp once
+    const timestamp = new Date().toISOString();
 
     // Update current location in Redis
     const locationKey = `currentLoc_${jobUuid}`;
-    const locationData = { lat, lng, timestamp: new Date() };
+    const locationData = { lat, lng, polyline, timestamp };
     await this.redis.setJson(locationKey, locationData);
 
     // Broadcast to all clients subscribed to this job
@@ -45,22 +70,25 @@ export class TrackingService {
 
     return {
       message: 'Location updated successfully',
-      data: { jobUuid, lat, lng, timestamp: new Date() },
+      data: { jobUuid, lat, lng, polyline, timestamp },
     };
   }
 
   async getCurrentLocation(jobUuid: string) {
-    // Check if job exists
-    const job = await this.prisma.job.findUnique({
-      where: { uuid: jobUuid },
-    });
-
-    if (!job) {
-      throw new NotFoundException('Job not found');
-    }
-
     const locationKey = `currentLoc_${jobUuid}`;
-    const location = await this.redis.getJson(locationKey);
+    const location: any = await this.redis.getJson(locationKey);
+
+    // If location doesn't have polyline, get it from job details in Redis
+    if (location && !location.polyline) {
+      const detailsKey = `details_${jobUuid}`;
+      const jobDetails: any = await this.redis.getJson(detailsKey);
+
+      if (jobDetails && jobDetails.delivery && jobDetails.delivery.polyline) {
+        location.polyline = jobDetails.delivery.polyline;
+      } else {
+        location.polyline = 'Noooo';
+      }
+    }
 
     return {
       data: location,
@@ -69,7 +97,12 @@ export class TrackingService {
 
   async pushLocationToSocket(
     jobId: string,
-    locationData: { lat: number; lng: number; timestamp: string; address?: string },
+    locationData: {
+      lat: number;
+      lng: number;
+      timestamp: string;
+      polyline: string;
+    },
   ) {
     // Broadcast to all clients subscribed to this job
     if (this.gateway.server) {

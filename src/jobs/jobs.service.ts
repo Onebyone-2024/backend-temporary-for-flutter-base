@@ -237,9 +237,10 @@ export class JobsService {
     const detailsKey = `details_${jobUuid}`;
     await this.redis.setJson(detailsKey, updatedJob);
 
-    // Store current location in Redis
+    // Store current location in Redis with polyline from delivery
     const locationKey = `currentLoc_${jobUuid}`;
-    await this.redis.setJson(locationKey, { lat, lng });
+    const polyline = updatedJob.delivery?.polyline || null;
+    await this.redis.setJson(locationKey, { lat, lng, polyline });
 
     return {
       message: 'Job started successfully',

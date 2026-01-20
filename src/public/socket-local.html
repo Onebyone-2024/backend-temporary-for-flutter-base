@@ -295,10 +295,51 @@
         </div>
       </div>
 
+      <!-- Location Data Section -->
+      <div class="section">
+        <h2>📍 Latest Location Data</h2>
+        <div
+          class="logs"
+          id="locationData"
+          style="max-height: 200px; font-size: 12px"
+        >
+          <div class="log-entry info">Waiting for location updates...</div>
+        </div>
+      </div>
+
+      <!-- Polyline Section -->
+      <div class="section">
+        <h2>🗺️ Route Polyline</h2>
+        <div
+          class="logs"
+          id="polylineData"
+          style="max-height: 150px; font-size: 11px; word-break: break-all"
+        >
+          <div class="log-entry info">Waiting for polyline data...</div>
+        </div>
+      </div>
+
       <!-- Logs Section -->
       <div class="section">
         <h2>📊 Real-time Events Log</h2>
         <div class="logs" id="logs"></div>
+      </div>
+
+      <!-- Raw JSON Section -->
+      <div class="section">
+        <h2>📤 Raw Streaming Data (JSON)</h2>
+        <div
+          class="logs"
+          id="rawData"
+          style="
+            max-height: 300px;
+            font-size: 11px;
+            background: #1e1e1e;
+            color: #00ff00;
+          "
+        >
+          <div class="log-entry info">Waiting for raw data...</div>
+        </div>
       </div>
     </div>
 
@@ -344,6 +385,17 @@
           const coords = `[${data.location.lat.toFixed(6)}, ${data.location.lng.toFixed(6)}]`;
 
           log(`📍 Location Update: ${coords} @ ${time}`, 'location');
+
+          // Display raw JSON data
+          displayRawData(data);
+
+          // Display location details
+          displayLocationData(data.location);
+
+          // Display polyline if available
+          if (data.location.polyline) {
+            displayPolyline(data.location.polyline);
+          }
         });
       }
 
@@ -402,9 +454,57 @@
 
       function clearLogs() {
         document.getElementById('logs').innerHTML = '';
+        document.getElementById('rawData').innerHTML = '';
+        document.getElementById('locationData').innerHTML = '';
+        document.getElementById('polylineData').innerHTML = '';
         updateCount = 0;
         document.getElementById('updateCount').textContent = '0';
         log('Logs cleared', 'info');
+      }
+
+      function displayRawData(data) {
+        const rawDataDiv = document.getElementById('rawData');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry info';
+        entry.style.color = '#00ff00';
+        entry.style.background = '#1a1a1a';
+        entry.style.fontFamily = 'monospace';
+
+        const formattedJson = JSON.stringify(data, null, 2);
+        entry.textContent = formattedJson;
+
+        rawDataDiv.innerHTML = '';
+        rawDataDiv.appendChild(entry);
+      }
+
+      function displayLocationData(location) {
+        const locationDiv = document.getElementById('locationData');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry location';
+
+        const timestamp = new Date(location.timestamp).toLocaleString();
+        const polylineValue = location.polyline || 'null';
+        const content = `
+          <strong>Latitude:</strong> ${location.lat.toFixed(6)}<br>
+          <strong>Longitude:</strong> ${location.lng.toFixed(6)}<br>
+          <strong>Timestamp:</strong> ${timestamp}<br>
+          <strong>Polyline:</strong> ${polylineValue}
+        `;
+
+        entry.innerHTML = content;
+        locationDiv.innerHTML = '';
+        locationDiv.appendChild(entry);
+      }
+
+      function displayPolyline(polyline) {
+        const polylineDiv = document.getElementById('polylineData');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry success';
+        entry.style.wordBreak = 'break-all';
+        entry.textContent = polyline;
+
+        polylineDiv.innerHTML = '';
+        polylineDiv.appendChild(entry);
       }
 
       // Initialize on page load
