@@ -1,25 +1,17 @@
 import { NestFactory } from '@nestjs/core';
-import {
-  FastifyAdapter,
-  NestFastifyApplication,
-} from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { IoAdapter } from '@nestjs/platform-socket.io';
-import fastifyCors from '@fastify/cors';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter(),
-  );
+  const app = await NestFactory.create(AppModule);
 
   // Setup WebSocket Adapter
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  // Enable CORS with Fastify
-  await app.register(fastifyCors, {
+  // Enable CORS with all origins (whitelist all IPs)
+  app.enableCors({
     origin: [
       'http://localhost:5173',
       'http://localhost:3000',
@@ -28,7 +20,7 @@ async function bootstrap() {
       '*',
     ],
     credentials: false,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: [
       'Content-Type',
       'Authorization',
