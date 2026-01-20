@@ -40,7 +40,7 @@ async function bootstrap() {
       skipMissingProperties: true,
     }),
   );
-
+  // Checkings
   // Swagger Documentation Setup
   const config = new DocumentBuilder()
     .setTitle('Job Tracking Backend API')
