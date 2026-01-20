@@ -3,6 +3,45 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TrackingService } from '../tracking/tracking.service';
 import { StartSimulationDto } from './dto/start-simulation.dto';
 
+// Polyline encoding function (Google Polyline Algorithm)
+function encodePolyline(points: Array<{ lat: number; lng: number }>): string {
+  let encoded = '';
+  let prevLat = 0;
+  let prevLng = 0;
+
+  for (const point of points) {
+    const lat = point.lat;
+    const lng = point.lng;
+
+    const dlat = Math.round((lat - prevLat) * 1e5);
+    const dlng = Math.round((lng - prevLng) * 1e5);
+
+    encoded += encodeValue(dlat) + encodeValue(dlng);
+
+    prevLat = lat;
+    prevLng = lng;
+  }
+
+  return encoded;
+}
+
+function encodeValue(value: number): string {
+  let result = '';
+  value = value << 1;
+  if (value < 0) {
+    value = ~value;
+  }
+
+  while (value >= 0x20) {
+    const chunk = (value & 0x1f) | 0x20;
+    result += String.fromCharCode(chunk + 63);
+    value >>= 5;
+  }
+
+  result += String.fromCharCode(value + 63);
+  return result;
+}
+
 // Dummy data untuk simulasi
 const DUMMY_DATA = {
   description: 'Deliver package to customer',
@@ -18,7 +57,7 @@ const DUMMY_DATA = {
       'K Square Mall, Jl. Sudirman 2F-25, Sukajadi, Kec. Batam Kota, Kota Batam, Kepulauan Riau 29444, Indonesia',
     lat: 1.1009878,
     lng: 104.037103,
-    polyline: 'm{zEcqazRfzCfyA',
+    polyline: '', // Will be generated from route coordinates
     distanceKm: 5.2,
     estimateDuration: 15,
     eta: new Date(new Date().getTime() + 15 * 60000), // 15 menit dari sekarang
@@ -29,28 +68,39 @@ const DUMMY_DATA = {
 // Koordinat rute simulasi Batam
 const ROUTE_COORDINATES = [
   {
-    name: 'Graha Pena Batam Building (Titik Start A)',
+    name: 'Pickup Point (Jl. Ahmad Yani)',
     lat: 1.1258311,
     lng: 104.0515445,
   },
-  { name: 'Monumen Welcome To Batam', lat: 1.1223017, lng: 104.0534285 },
-  { name: 'Dataran Engku Putri', lat: 1.129271, lng: 104.0538747 },
   {
-    name: 'Simpang Jalan Ahmad Yani & Raja H. Fisabilillah',
-    lat: 1.1264,
-    lng: 104.0452,
+    name: 'Simpang Frengky',
+    lat: 1.121542,
+    lng: 104.048921,
   },
-  { name: 'Bundaran Tuah Madani', lat: 1.1341466, lng: 104.0434369 },
-  { name: 'Dataran Madani Kota Batam', lat: 1.1254003, lng: 104.026376 },
-  { name: 'Flyover Laluan Madani', lat: 1.1248, lng: 104.0258 },
-  { name: 'Taman Dang Anom', lat: 1.1209722, lng: 104.0206642 },
-  { name: 'Jalan Jenderal Sudirman', lat: 1.105, lng: 104.032 },
   {
-    name: 'Guardian - K Square Mall (Titik Finish B)',
+    name: 'Simpang Kara',
+    lat: 1.114022,
+    lng: 104.044561,
+  },
+  {
+    name: 'Simpang Kabil (Kepri Mall)',
+    lat: 1.107531,
+    lng: 104.040122,
+  },
+  {
+    name: 'Jl. Sudirman (Flyover Laluan Madani)',
+    lat: 1.10355,
+    lng: 104.0385,
+  },
+  {
+    name: 'Delivery Point (K Square Mall)',
     lat: 1.1009878,
     lng: 104.037103,
   },
 ];
+
+// Generate polyline from route coordinates
+DUMMY_DATA.delivery.polyline = encodePolyline(ROUTE_COORDINATES);
 
 @Injectable()
 export class SimulationService {
