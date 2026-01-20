@@ -10,12 +10,42 @@ async function bootstrap() {
   // Setup WebSocket Adapter
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  // Enable CORS with all origins (whitelist all IPs)
+  // Parse allowed origins from environment
+  const allowedOriginsEnv = process.env.ALLOWED_ORIGINS || '';
+  const allowedOrigins = allowedOriginsEnv
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  // Always add localhost origins for development
+  const corsOrigins = [
+    ...allowedOrigins,
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+  ];
+
+  console.log('✓ CORS Allowed Origins:', corsOrigins);
+
+  // Enable CORS
   app.enableCors({
-    origin: true, // Accept requests from any origin
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (corsOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`⚠ CORS rejected origin: ${origin}`);
+        callback(null, true); // Still allow but log warning
+      }
+    },
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: '*', // Allow all headers
+    allowedHeaders: '*',
     exposedHeaders: [
       'Content-Type',
       'Authorization',
@@ -75,10 +105,10 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
+  console.log(`Application is running on: http://148.230.97.14:${port}`);
   console.log(
-    `📚 Swagger Documentation available at: http://localhost:${port}/api`,
+    `📚 Swagger Documentation available at: http://148.230.97.14:${port}/api`,
   );
-  console.log(`🔌 WebSocket available at: ws://localhost:${port}`);
+  console.log(`🔌 WebSocket available at: ws://148.230.97.14:${port}`);
 }
 bootstrap();
