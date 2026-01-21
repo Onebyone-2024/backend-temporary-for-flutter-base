@@ -244,6 +244,75 @@
         font-size: 18px;
         font-weight: bold;
       }
+
+      .tracking-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .tracking-metric {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      }
+
+      .tracking-metric-label {
+        font-size: 12px;
+        font-weight: 600;
+        opacity: 0.9;
+        margin-bottom: 8px;
+      }
+
+      .tracking-metric-value {
+        font-size: 24px;
+        font-weight: bold;
+      }
+
+      .tracking-metric-unit {
+        font-size: 11px;
+        margin-top: 4px;
+        opacity: 0.8;
+      }
+
+      .location-detail {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      .location-detail:last-child {
+        border-bottom: none;
+      }
+
+      .location-detail-label {
+        font-weight: 600;
+        color: #667eea;
+        min-width: 150px;
+      }
+
+      .location-detail-value {
+        color: #333;
+        font-family: 'Courier New', monospace;
+        word-break: break-all;
+      }
+
+      @media (max-width: 1024px) {
+        .tracking-metrics {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .tracking-metrics {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
@@ -297,12 +366,38 @@
 
       <!-- Location Data Section -->
       <div class="section">
-        <h2>📍 Latest Location Data</h2>
+        <h2>📍 Latest Location Data & Tracking Metrics</h2>
+
+        <!-- Tracking Metrics -->
         <div
-          class="logs"
-          id="locationData"
-          style="max-height: 200px; font-size: 12px"
+          class="tracking-metrics"
+          id="trackingMetrics"
+          style="display: none"
         >
+          <div class="tracking-metric">
+            <div class="tracking-metric-label">⏱️ Duration Est.</div>
+            <div class="tracking-metric-value" id="durationValue">—</div>
+            <div class="tracking-metric-unit">minutes</div>
+          </div>
+          <div class="tracking-metric">
+            <div class="tracking-metric-label">📋 Remaining</div>
+            <div class="tracking-metric-value" id="remainingValue">—</div>
+            <div class="tracking-metric-unit">km</div>
+          </div>
+          <div class="tracking-metric">
+            <div class="tracking-metric-label">📍 Latitude</div>
+            <div class="tracking-metric-value" id="latValue">—</div>
+            <div class="tracking-metric-unit">degrees</div>
+          </div>
+          <div class="tracking-metric">
+            <div class="tracking-metric-label">📍 Longitude</div>
+            <div class="tracking-metric-value" id="lngValue">—</div>
+            <div class="tracking-metric-unit">degrees</div>
+          </div>
+        </div>
+
+        <!-- Location Details Table -->
+        <div id="locationData" style="font-size: 12px">
           <div class="log-entry info">Waiting for location updates...</div>
         </div>
       </div>
@@ -479,19 +574,57 @@
 
       function displayLocationData(location) {
         const locationDiv = document.getElementById('locationData');
-        const entry = document.createElement('div');
-        entry.className = 'log-entry location';
+        const metricsDiv = document.getElementById('trackingMetrics');
 
+        // Show metrics container
+        metricsDiv.style.display = 'grid';
+
+        // Update metric values
+        const duration = location.duration_estimation || '—';
+        const remaining = location.remaining_distance_km
+          ? location.remaining_distance_km.toFixed(2)
+          : '—';
+        const lat = location.lat ? location.lat.toFixed(6) : '—';
+        const lng = location.lng ? location.lng.toFixed(6) : '—';
+
+        document.getElementById('durationValue').textContent = duration;
+        document.getElementById('remainingValue').textContent = remaining;
+        document.getElementById('latValue').textContent = lat;
+        document.getElementById('lngValue').textContent = lng;
+
+        // Create detailed location information
         const timestamp = new Date(location.timestamp).toLocaleString();
-        const polylineValue = location.polyline || 'null';
-        const content = `
-          <strong>Latitude:</strong> ${location.lat.toFixed(6)}<br>
-          <strong>Longitude:</strong> ${location.lng.toFixed(6)}<br>
-          <strong>Timestamp:</strong> ${timestamp}<br>
-          <strong>Polyline:</strong> ${polylineValue}
+        const entry = document.createElement('div');
+        entry.style.padding = '12px';
+
+        const html = `
+          <div class="location-detail">
+            <span class="location-detail-label">📍 Latitude</span>
+            <span class="location-detail-value">${lat}</span>
+          </div>
+          <div class="location-detail">
+            <span class="location-detail-label">📍 Longitude</span>
+            <span class="location-detail-value">${lng}</span>
+          </div>
+          <div class="location-detail">
+            <span class="location-detail-label">⏱️ Duration Est.</span>
+            <span class="location-detail-value">${duration} minutes</span>
+          </div>
+          <div class="location-detail">
+            <span class="location-detail-label">📋 Remaining Dist.</span>
+            <span class="location-detail-value">${remaining} km</span>
+          </div>
+          <div class="location-detail">
+            <span class="location-detail-label">🕐 Timestamp</span>
+            <span class="location-detail-value">${timestamp}</span>
+          </div>
+          <div class="location-detail">
+            <span class="location-detail-label">🗺️ Polyline</span>
+            <span class="location-detail-value" style="font-size: 10px;">${location.polyline ? location.polyline.substring(0, 50) + '...' : 'null'}</span>
+          </div>
         `;
 
-        entry.innerHTML = content;
+        entry.innerHTML = html;
         locationDiv.innerHTML = '';
         locationDiv.appendChild(entry);
       }
