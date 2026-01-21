@@ -2,7 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { TrackingService } from '../tracking/tracking.service';
-import { StartSimulationDto } from './dto/start-simulation.dto';
+import {
+  StartSimulationDto,
+  SimulateOffRouteDto,
+  SimulateCustomRouteDto,
+  SimulateThrottledRerouteDto,
+} from './dto/start-simulation.dto';
 
 // Polyline encoding function (Google Polyline Algorithm)
 function encodePolyline(points: Array<{ lat: number; lng: number }>): string {
@@ -102,6 +107,27 @@ const ROUTE_COORDINATES = [
 
 // Generate polyline from route coordinates
 DUMMY_DATA.delivery.polyline = encodePolyline(ROUTE_COORDINATES);
+
+// Helper function: Calculate deviated coordinates
+function getDeviatedCoordinate(
+  lat: number,
+  lng: number,
+  deviationMeters: number,
+): { lat: number; lng: number } {
+  // Random deviation direction
+  const angle = Math.random() * Math.PI * 2;
+  const deviationKm = deviationMeters / 1000;
+
+  // Approximate: 1 degree ≈ 111 km
+  const latOffset = (deviationKm / 111) * Math.cos(angle);
+  const lngOffset =
+    ((deviationKm / 111) * Math.sin(angle)) / Math.cos((lat * Math.PI) / 180);
+
+  return {
+    lat: lat + latOffset,
+    lng: lng + lngOffset,
+  };
+}
 
 @Injectable()
 export class SimulationService {
@@ -349,5 +375,407 @@ export class SimulationService {
       this.logger.error(`✗ Failed to stop simulation: ${error.message}`, error);
       throw error;
     }
+  }
+
+  /**
+   * Simulate off-route scenario
+   * Driver deviates from original route at specified point and continues deviating
+   */
+  async simulateOffRoute(jobId: string, dto: SimulateOffRouteDto) {
+    try {
+      const job = await this.prismaService.job.findUnique({
+        where: { uuid: jobId },
+        include: { pickup: true, delivery: true, assignee: true },
+      });
+
+      if (!job) {
+        return { success: false, message: 'Job not found' };
+      }
+
+      // Cache job details in Redis
+      const detailsKey = `details_${jobId}`;
+      await this.redisService.setJson(detailsKey, job);
+
+      // Stop existing simulation
+      if (this.activeSimulations.has(jobId)) {
+        clearInterval(this.activeSimulations.get(jobId));
+      }
+
+      // Update job status
+      await this.prismaService.job.update({
+        where: { uuid: jobId },
+        data: { jobStatus: 'in_progress' },
+      });
+
+      let coordinateIndex = 0;
+      const intervalDuration = (dto.intervalSeconds || 3) * 1000;
+      const deviateAtIndex = dto.deviateAtIndex || 2;
+      const deviationMeters = dto.deviationMeters || 150;
+      let isDeviated = false;
+      let lastRerouteIndex = -1;
+
+      const interval = setInterval(async () => {
+        try {
+          if (coordinateIndex < ROUTE_COORDINATES.length) {
+            const coord = ROUTE_COORDINATES[coordinateIndex];
+
+            // Start deviation after specified index
+            if (coordinateIndex >= deviateAtIndex && !isDeviated) {
+              isDeviated = true;
+              this.logger.warn(
+                `🚨 [${jobId}] OFF-ROUTE SIMULATION: Deviating at index ${coordinateIndex}`,
+              );
+            }
+
+            // Apply deviation to coordinates
+            if (isDeviated) {
+              const deviated = getDeviatedCoordinate(
+                coord.lat,
+                coord.lng,
+                deviationMeters,
+              );
+
+              // Check if we should trigger off-route flag (only once per few updates)
+              if (
+                coordinateIndex - lastRerouteIndex >= 2 &&
+                coordinateIndex > deviateAtIndex
+              ) {
+                // Push with isOffRoute flag
+                await this.trackingService.pushLocation({
+                  jobUuid: jobId,
+                  lat: deviated.lat,
+                  lng: deviated.lng,
+                  isOffRoute: true,
+                });
+
+                lastRerouteIndex = coordinateIndex;
+                this.logger.log(
+                  `📍 [${jobId}] Off-route location with reroute flag at index ${coordinateIndex}`,
+                );
+              } else {
+                // Push normal location
+                await this.trackingService.pushLocation({
+                  jobUuid: jobId,
+                  lat: deviated.lat,
+                  lng: deviated.lng,
+                });
+
+                this.logger.debug(
+                  `📍 [${jobId}] Deviated location at index ${coordinateIndex} (${deviationMeters}m offset)`,
+                );
+              }
+            } else {
+              // Normal location before deviation
+              await this.trackingService.pushLocation({
+                jobUuid: jobId,
+                lat: coord.lat,
+                lng: coord.lng,
+              });
+
+              this.logger.debug(
+                `📍 [${jobId}] Normal location at index ${coordinateIndex}: ${coord.name}`,
+              );
+            }
+
+            coordinateIndex++;
+          } else {
+            clearInterval(interval);
+            this.activeSimulations.delete(jobId);
+
+            await this.prismaService.job.update({
+              where: { uuid: jobId },
+              data: { jobStatus: 'finished' },
+            });
+
+            this.logger.log(`✓ [${jobId}] Off-route simulation completed`);
+          }
+        } catch (error) {
+          this.logger.error(
+            `Error during off-route simulation tick: ${error.message}`,
+            error,
+          );
+        }
+      }, intervalDuration);
+
+      this.activeSimulations.set(jobId, interval);
+
+      this.logger.log(
+        `✓ Off-route simulation started for job ${jobId} (deviate at index ${deviateAtIndex}, offset ${deviationMeters}m)`,
+      );
+
+      return {
+        success: true,
+        message: 'Off-route simulation started',
+        jobId,
+        deviateAtIndex,
+        deviationMeters,
+        totalCoordinates: ROUTE_COORDINATES.length,
+      };
+    } catch (error) {
+      this.logger.error(
+        `✗ Failed to start off-route simulation: ${error.message}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Simulate with custom route coordinates
+   */
+  async simulateCustomRoute(jobId: string, dto: SimulateCustomRouteDto) {
+    try {
+      const job = await this.prismaService.job.findUnique({
+        where: { uuid: jobId },
+        include: { pickup: true, delivery: true, assignee: true },
+      });
+
+      if (!job) {
+        return { success: false, message: 'Job not found' };
+      }
+
+      // Generate polyline from custom route
+      const customPolyline = encodePolyline(dto.customRoute);
+
+      // Update job with custom polyline
+      await this.prismaService.delivery.update({
+        where: { jobUuid: jobId },
+        data: { polyline: customPolyline },
+      });
+
+      // Cache updated job details
+      const detailsKey = `details_${jobId}`;
+      job.delivery.polyline = customPolyline;
+      await this.redisService.setJson(detailsKey, job);
+
+      // Stop existing simulation
+      if (this.activeSimulations.has(jobId)) {
+        clearInterval(this.activeSimulations.get(jobId));
+      }
+
+      // Update job status
+      await this.prismaService.job.update({
+        where: { uuid: jobId },
+        data: { jobStatus: 'in_progress' },
+      });
+
+      let coordinateIndex = 0;
+      const intervalDuration = (dto.intervalSeconds || 3) * 1000;
+
+      const interval = setInterval(async () => {
+        try {
+          if (coordinateIndex < dto.customRoute.length) {
+            const coord = dto.customRoute[coordinateIndex];
+
+            await this.trackingService.pushLocation({
+              jobUuid: jobId,
+              lat: coord.lat,
+              lng: coord.lng,
+            });
+
+            this.logger.debug(
+              `📍 [${jobId}] Custom route location ${coordinateIndex + 1}/${dto.customRoute.length}: ${coord.name || 'Point'}`,
+            );
+
+            coordinateIndex++;
+          } else {
+            clearInterval(interval);
+            this.activeSimulations.delete(jobId);
+
+            await this.prismaService.job.update({
+              where: { uuid: jobId },
+              data: { jobStatus: 'finished' },
+            });
+
+            this.logger.log(`✓ [${jobId}] Custom route simulation completed`);
+          }
+        } catch (error) {
+          this.logger.error(
+            `Error during custom route simulation tick: ${error.message}`,
+            error,
+          );
+        }
+      }, intervalDuration);
+
+      this.activeSimulations.set(jobId, interval);
+
+      this.logger.log(
+        `✓ Custom route simulation started for job ${jobId} with ${dto.customRoute.length} waypoints`,
+      );
+
+      return {
+        success: true,
+        message: 'Custom route simulation started',
+        jobId,
+        totalWaypoints: dto.customRoute.length,
+        customPolyline,
+      };
+    } catch (error) {
+      this.logger.error(
+        `✗ Failed to start custom route simulation: ${error.message}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Simulate throttled rerouting
+   * Driver goes off-route, system triggers reroute after delay
+   * Tests throttling mechanism
+   */
+  async simulateThrottledReroute(
+    jobId: string,
+    dto: SimulateThrottledRerouteDto,
+  ) {
+    try {
+      const job = await this.prismaService.job.findUnique({
+        where: { uuid: jobId },
+        include: { pickup: true, delivery: true, assignee: true },
+      });
+
+      if (!job) {
+        return { success: false, message: 'Job not found' };
+      }
+
+      // Cache job details
+      const detailsKey = `details_${jobId}`;
+      await this.redisService.setJson(detailsKey, job);
+
+      // Stop existing simulation
+      if (this.activeSimulations.has(jobId)) {
+        clearInterval(this.activeSimulations.get(jobId));
+      }
+
+      // Update job status
+      await this.prismaService.job.update({
+        where: { uuid: jobId },
+        data: { jobStatus: 'in_progress' },
+      });
+
+      let coordinateIndex = 0;
+      let isDeviated = false;
+      let deviationStartTime = 0;
+      const intervalDuration = (dto.intervalSeconds || 3) * 1000;
+      const deviateAtIndex = dto.deviateAtIndex || 2;
+      const deviationMeters = dto.deviationMeters || 150;
+      const rerouteDelaySeconds = dto.rerouteDelaySeconds || 2;
+
+      const interval = setInterval(async () => {
+        try {
+          if (coordinateIndex < ROUTE_COORDINATES.length) {
+            const coord = ROUTE_COORDINATES[coordinateIndex];
+
+            // Start deviation
+            if (coordinateIndex >= deviateAtIndex && !isDeviated) {
+              isDeviated = true;
+              deviationStartTime = Date.now();
+              this.logger.warn(
+                `🚨 [${jobId}] THROTTLE TEST: Deviation started at index ${coordinateIndex}`,
+              );
+            }
+
+            if (isDeviated) {
+              const deviated = getDeviatedCoordinate(
+                coord.lat,
+                coord.lng,
+                deviationMeters,
+              );
+
+              const timeSinceDeviation =
+                (Date.now() - deviationStartTime) / 1000;
+
+              // Trigger off-route flag after delay
+              if (timeSinceDeviation >= rerouteDelaySeconds) {
+                await this.trackingService.pushLocation({
+                  jobUuid: jobId,
+                  lat: deviated.lat,
+                  lng: deviated.lng,
+                  isOffRoute: true,
+                });
+
+                this.logger.log(
+                  `📍 [${jobId}] Off-route flag triggered after ${timeSinceDeviation.toFixed(1)}s deviation`,
+                );
+
+                // Clear deviation after reroute to continue normally
+                isDeviated = false;
+              } else {
+                // Push deviated location without flag
+                await this.trackingService.pushLocation({
+                  jobUuid: jobId,
+                  lat: deviated.lat,
+                  lng: deviated.lng,
+                });
+
+                this.logger.debug(
+                  `📍 [${jobId}] Deviated (${timeSinceDeviation.toFixed(1)}s/${rerouteDelaySeconds}s)`,
+                );
+              }
+            } else {
+              await this.trackingService.pushLocation({
+                jobUuid: jobId,
+                lat: coord.lat,
+                lng: coord.lng,
+              });
+            }
+
+            coordinateIndex++;
+          } else {
+            clearInterval(interval);
+            this.activeSimulations.delete(jobId);
+
+            await this.prismaService.job.update({
+              where: { uuid: jobId },
+              data: { jobStatus: 'finished' },
+            });
+
+            this.logger.log(
+              `✓ [${jobId}] Throttled reroute simulation completed`,
+            );
+          }
+        } catch (error) {
+          this.logger.error(
+            `Error during throttle test tick: ${error.message}`,
+            error,
+          );
+        }
+      }, intervalDuration);
+
+      this.activeSimulations.set(jobId, interval);
+
+      this.logger.log(
+        `✓ Throttled reroute simulation started for job ${jobId}`,
+      );
+
+      return {
+        success: true,
+        message:
+          'Throttled reroute simulation started (tests throttling mechanism)',
+        jobId,
+        deviateAtIndex,
+        deviationMeters,
+        rerouteDelaySeconds,
+        totalCoordinates: ROUTE_COORDINATES.length,
+      };
+    } catch (error) {
+      this.logger.error(
+        `✗ Failed to start throttled reroute simulation: ${error.message}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * List all active simulations
+   */
+  async getActiveSimulations() {
+    const activeJobs = Array.from(this.activeSimulations.keys());
+    return {
+      success: true,
+      count: activeJobs.length,
+      activeJobs,
+    };
   }
 }

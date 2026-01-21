@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { RedisModule } from './redis/redis.module';
+import { MapsModule } from './maps/maps.module';
 import { JobsModule } from './jobs/jobs.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { SimulationModule } from './simulation/simulation.module';
@@ -38,6 +39,9 @@ import { SimulationModule } from './simulation/simulation.module';
 
     // Redis Module
     RedisModule,
+
+    // Maps Module (Google Maps integration)
+    MapsModule,
 
     // Feature Modules
     AuthModule,
