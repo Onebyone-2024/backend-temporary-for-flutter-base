@@ -84,6 +84,7 @@ async function bootstrap() {
     .addTag('Auth', 'User registration and login')
     .addTag('Jobs', 'Job creation and management')
     .addTag('Tracking', 'Real-time location tracking')
+    .addTag('Maps', 'Google Maps directions and routing')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
