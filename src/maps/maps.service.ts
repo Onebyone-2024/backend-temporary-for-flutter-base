@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { RedisService } from '../redis/redis.service';
 
 interface GoogleRoute {
   polyline: string;
@@ -75,6 +76,8 @@ interface GoogleDirectionsResponse {
 export class MapsService {
   private readonly logger = new Logger(MapsService.name);
   private readonly googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+  constructor(private readonly redisService: RedisService) {}
 
   /**
    * Get reroute from current position to destination using Google Directions API
@@ -162,7 +165,7 @@ export class MapsService {
   }
 
   /**
-   * Get simplified directions data from Google Directions API
+   * Get simplified directions data from Google Directions API with Redis caching
    * Returns simplified response with details and routes (1-3 alternatives)
    *
    * @param pickupLat - Pickup latitude
@@ -184,6 +187,26 @@ export class MapsService {
       throw new Error('GOOGLE_MAPS_API_KEY environment variable not set');
     }
 
+    // Generate Redis cache key
+    const cacheKey = `route_${pickupLat},${pickupLng}_${deliveryLat},${deliveryLng}`;
+
+    try {
+      // Check if data exists in Redis
+      const cachedData =
+        await this.redisService.getJson<SimpleDirectionsResponse>(cacheKey);
+
+      if (cachedData) {
+        this.logger.log(`✓ Route found in cache: ${cacheKey}`);
+        return cachedData;
+      }
+
+      this.logger.log(`📍 Cache miss for route: ${cacheKey}`);
+    } catch (cacheError) {
+      this.logger.warn(`⚠ Redis cache read error: ${cacheError}`);
+      // Continue with API call if Redis fails
+    }
+
+    // Fetch from Google API
     const url = 'https://maps.googleapis.com/maps/api/directions/json';
 
     const params = new URLSearchParams({
@@ -243,6 +266,16 @@ export class MapsService {
         },
         routes: simplifiedRoutes,
       };
+
+      // Store in Redis with TTL (24 hours)
+      try {
+        const ttl = 24 * 60 * 60; // 24 hours in seconds
+        await this.redisService.setJson(cacheKey, response_data, ttl);
+        this.logger.log(`✓ Route cached in Redis for 24 hours: ${cacheKey}`);
+      } catch (cacheError) {
+        this.logger.warn(`⚠ Redis cache write error: ${cacheError}`);
+        // Continue even if Redis write fails
+      }
 
       this.logger.log(
         `✓ Directions obtained: ${data.routes.length} route(s) found`,
