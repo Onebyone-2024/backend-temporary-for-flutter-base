@@ -121,14 +121,14 @@ function distancePointToSegment(
  * @param currentLat - Current latitude
  * @param currentLng - Current longitude
  * @param polylineEncoded - Google encoded polyline
- * @param thresholdMeters - Distance threshold (default 100m)
+ * @param thresholdMeters - Distance threshold (default 50m)
  * @returns Object with isOffRoute boolean and distance from polyline in meters
  */
 export function isOffRoute(
   currentLat: number,
   currentLng: number,
   polylineEncoded: string,
-  thresholdMeters: number = 100,
+  thresholdMeters: number = 50,
 ): { isOffRoute: boolean; distanceFromPolyline: number } {
   try {
     // Decode polyline locally (no API call needed)

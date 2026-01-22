@@ -410,7 +410,7 @@ export class SimulationService {
       let coordinateIndex = 0;
       const intervalDuration = (dto.intervalSeconds || 3) * 1000;
       const deviateAtIndex = dto.deviateAtIndex || 2;
-      const deviationMeters = dto.deviationMeters || 150;
+      const deviationMeters = dto.deviationMeters || 60;
       let isDeviated = false;
       let lastRerouteIndex = -1;
 
@@ -440,12 +440,11 @@ export class SimulationService {
                 coordinateIndex - lastRerouteIndex >= 2 &&
                 coordinateIndex > deviateAtIndex
               ) {
-                // Push with isOffRoute flag
+                // Push location - backend will auto-detect off-route
                 await this.trackingService.pushLocation({
                   jobUuid: jobId,
                   lat: deviated.lat,
                   lng: deviated.lng,
-                  isOffRoute: true,
                 });
 
                 lastRerouteIndex = coordinateIndex;
@@ -658,7 +657,7 @@ export class SimulationService {
       let deviationStartTime = 0;
       const intervalDuration = (dto.intervalSeconds || 3) * 1000;
       const deviateAtIndex = dto.deviateAtIndex || 2;
-      const deviationMeters = dto.deviationMeters || 150;
+      const deviationMeters = dto.deviationMeters || 60;
       const rerouteDelaySeconds = dto.rerouteDelaySeconds || 2;
 
       const interval = setInterval(async () => {
@@ -685,13 +684,12 @@ export class SimulationService {
               const timeSinceDeviation =
                 (Date.now() - deviationStartTime) / 1000;
 
-              // Trigger off-route flag after delay
+              // Trigger location after delay - backend will auto-detect off-route
               if (timeSinceDeviation >= rerouteDelaySeconds) {
                 await this.trackingService.pushLocation({
                   jobUuid: jobId,
                   lat: deviated.lat,
                   lng: deviated.lng,
-                  isOffRoute: true,
                 });
 
                 this.logger.log(

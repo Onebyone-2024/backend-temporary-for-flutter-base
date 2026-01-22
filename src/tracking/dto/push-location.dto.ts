@@ -19,10 +19,23 @@ export class PolylineLogEntry {
 
   @ApiProperty({
     example: 'off_route',
-    enum: ['initial', 'reroute', 'off_route'],
+    enum: [
+      'initial',
+      'reroute',
+      'off_route',
+      'reroute_new',
+      'manual_reroute',
+      'manual_reroute_new',
+    ],
     description: 'Reason for polyline change',
   })
-  reason?: 'initial' | 'reroute' | 'off_route';
+  reason?:
+    | 'initial'
+    | 'reroute'
+    | 'off_route'
+    | 'reroute_new'
+    | 'manual_reroute'
+    | 'manual_reroute_new';
 
   @ApiProperty({
     example: 150.5,
@@ -56,21 +69,11 @@ export class PushLocationDto {
 
   @ApiProperty({
     example: 'enc:{wsiFljiiBrB~A...',
-    description: 'Optional polyline for explicit route update',
+    description:
+      'Optional polyline for explicit route update (when user manually requests new route)',
     required: false,
   })
   @IsOptional()
   @IsString()
   polyline?: string;
-
-  @ApiProperty({
-    example: false,
-    description:
-      'Flag indicating driver is off-route (system will auto-generate new polyline)',
-    required: false,
-    default: false,
-  })
-  @IsOptional()
-  @IsBoolean()
-  isOffRoute?: boolean;
 }

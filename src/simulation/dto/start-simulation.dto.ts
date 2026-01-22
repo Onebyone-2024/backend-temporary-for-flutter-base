@@ -105,14 +105,14 @@ export class SimulateThrottledRerouteDto {
   deviateAtIndex?: number = 2;
 
   @ApiProperty({
-    example: 150,
+    example: 60,
     description: 'Distance deviation in meters',
     required: false,
-    default: 150,
+    default: 60,
   })
   @IsOptional()
   @IsNumber()
-  deviationMeters?: number = 150;
+  deviationMeters?: number = 60;
 
   @ApiProperty({
     example: 2,

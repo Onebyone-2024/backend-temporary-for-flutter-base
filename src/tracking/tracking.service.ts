@@ -19,13 +19,7 @@ export class TrackingService {
   ) {}
 
   async pushLocation(pushLocationDto: PushLocationDto) {
-    const {
-      jobUuid,
-      lat,
-      lng,
-      polyline: newPolyline,
-      isOffRoute: isOffRouteFlag,
-    } = pushLocationDto;
+    const { jobUuid, lat, lng, polyline: newPolyline } = pushLocationDto;
 
     // STEP 1: Get job details from Redis
     const detailsKey = `details_${jobUuid}`;
@@ -36,29 +30,23 @@ export class TrackingService {
     }
 
     let currentPolyline = cachedJob.delivery.polyline;
-    const polylineLog: PolylineLogEntry[] =
-      cachedJob.delivery.polylineLog || [];
+    let polylineLog: PolylineLogEntry[] = cachedJob.delivery.polylineLog || [];
     let rerouted = false;
     let offRouteDistance = 0;
+    let isOffRouteDetected = false;
 
     const timestamp = new Date().toISOString();
 
-    // ========== NEGATIVE FLOW: OFF-ROUTE DETECTION ==========
-    if (isOffRouteFlag && currentPolyline) {
-      this.logger.warn(`🚨 OFF-ROUTE FLAG received for job: ${jobUuid}`);
-
-      // STEP 2: Check distance to polyline (LOCAL - NO API)
-      const offRouteCheck = isOffRoute(lat, lng, currentPolyline, 100);
+    // ========== AUTO OFF-ROUTE DETECTION (BACKEND) ==========
+    // Backend automatically checks if driver is off-route WITHOUT needing FE flag
+    if (currentPolyline) {
+      const offRouteCheck = isOffRoute(lat, lng, currentPolyline, 50);
       offRouteDistance = offRouteCheck.distanceFromPolyline;
 
-      this.logger.log(
-        `📍 Distance from polyline: ${offRouteCheck.distanceFromPolyline.toFixed(0)}m`,
-      );
-
-      // STEP 3: If truly off-route, hit Google API for new route
       if (offRouteCheck.isOffRoute) {
+        isOffRouteDetected = true;
         this.logger.warn(
-          `⚠️ Driver off-route! Distance: ${offRouteCheck.distanceFromPolyline.toFixed(0)}m`,
+          `🚨 OFF-ROUTE DETECTED! Distance from polyline: ${offRouteDistance.toFixed(0)}m (job: ${jobUuid})`,
         );
 
         try {
@@ -76,6 +64,17 @@ export class TrackingService {
               `⏱️ Reroute throttled (${(timeSinceLastReroute / 1000).toFixed(1)}s since last reroute)`,
             );
           } else {
+            // SAVE OLD POLYLINE FIRST before requesting new one
+            polylineLog.unshift({
+              polyline: currentPolyline,
+              timestamp,
+              reason: 'off_route',
+              distanceFromPreviousRoute: offRouteDistance,
+            });
+
+            // Keep max 10 entries in log
+            if (polylineLog.length > 10) polylineLog.pop();
+
             // Hit Google API for new route
             const newRoute = await this.mapsService.getReroute(
               lat,
@@ -84,12 +83,11 @@ export class TrackingService {
               cachedJob.delivery.lng,
             );
 
-            // STEP 4: Log history with new polyline
+            // ADD NEW POLYLINE to log
             polylineLog.unshift({
               polyline: newRoute.polyline,
               timestamp,
-              reason: 'off_route',
-              distanceFromPreviousRoute: offRouteCheck.distanceFromPolyline,
+              reason: 'reroute_new',
             });
 
             // Keep max 10 entries in log
@@ -128,22 +126,30 @@ export class TrackingService {
         }
       }
     }
-    // ========== NORMAL FLOW: Explicit polyline update ==========
-    else if (newPolyline && !isOffRouteFlag) {
+    // ========== EXPLICIT POLYLINE UPDATE ==========
+    // When FE explicitly provides new polyline (e.g., from user action)
+    if (newPolyline && newPolyline !== currentPolyline) {
       this.logger.log(`🔄 Explicit polyline update for job: ${jobUuid}`);
 
-      currentPolyline = newPolyline;
+      // SAVE OLD POLYLINE FIRST
+      polylineLog.unshift({
+        polyline: currentPolyline,
+        timestamp,
+        reason: 'manual_reroute',
+      });
 
-      // Log history
+      // Then ADD NEW POLYLINE
       polylineLog.unshift({
         polyline: newPolyline,
         timestamp,
-        reason: 'reroute',
+        reason: 'manual_reroute_new',
       });
 
+      // Keep max 10 entries in log
       if (polylineLog.length > 10) polylineLog.pop();
 
-      // Update cache and database
+      // Update current polyline
+      currentPolyline = newPolyline;
       cachedJob.delivery.polyline = newPolyline;
       cachedJob.delivery.polylineLog = polylineLog;
       await this.redis.setJson(detailsKey, cachedJob);
@@ -166,7 +172,7 @@ export class TrackingService {
       rerouted,
     };
 
-    if (isOffRouteFlag) {
+    if (isOffRouteDetected) {
       locationData.distanceFromRoute = offRouteDistance;
     }
 
@@ -204,7 +210,8 @@ export class TrackingService {
       this.gateway.server.to(roomName).emit('location_update', {
         jobId: jobUuid,
         location: locationData,
-        offRoute: isOffRouteFlag,
+        offRoute: isOffRouteDetected,
+        rerouted,
         polylineUpdated: rerouted || !!newPolyline,
       });
       this.logger.log(`📡 Broadcast location update to room: ${roomName}`);
@@ -215,7 +222,7 @@ export class TrackingService {
     return {
       message: 'Location updated successfully',
       data: locationData,
-      offRoute: isOffRouteFlag,
+      offRoute: isOffRouteDetected,
       rerouted,
     };
   }
