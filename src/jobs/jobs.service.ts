@@ -2,18 +2,23 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { TrackingGateway } from '../tracking/tracking.gateway';
 import { CreateJobDto } from './dto/create-job.dto';
 import { StartJobDto } from './dto/start-job.dto';
 import { FinishJobDto } from './dto/finish-job.dto';
 
 @Injectable()
 export class JobsService {
+  private readonly logger = new Logger(JobsService.name);
+
   constructor(
     private prisma: PrismaService,
     private redis: RedisService,
+    private gateway: TrackingGateway,
   ) {}
 
   /**
@@ -242,6 +247,21 @@ export class JobsService {
     const polyline = updatedJob.delivery?.polyline || null;
     await this.redis.setJson(locationKey, { lat, lng, polyline });
 
+    // Broadcast job status change to WebSocket
+    if (this.gateway.server) {
+      const roomName = `tracking_${jobUuid}`;
+      this.gateway.server.to(roomName).emit('job_status_changed', {
+        jobId: jobUuid,
+        jobStatus: 'in_progress',
+        message: 'Job started - Status changed to in_progress',
+        timestamp: new Date().toISOString(),
+        job: updatedJob,
+      });
+      this.logger.log(
+        `📡 Broadcast job status change (in_progress) to room: ${roomName}`,
+      );
+    }
+
     return {
       message: 'Job started successfully',
       data: updatedJob,
@@ -306,6 +326,21 @@ export class JobsService {
     // Remove job details from Redis cache
     const detailsKey = `details_${jobUuid}`;
     await this.redis.del(detailsKey);
+
+    // Broadcast job status change to WebSocket
+    if (this.gateway.server) {
+      const roomName = `tracking_${jobUuid}`;
+      this.gateway.server.to(roomName).emit('job_status_changed', {
+        jobId: jobUuid,
+        jobStatus: 'finished',
+        message: 'Job finished - Status changed to finished',
+        timestamp: new Date().toISOString(),
+        job: updatedJob,
+      });
+      this.logger.log(
+        `📡 Broadcast job status change (finished) to room: ${roomName}`,
+      );
+    }
 
     return {
       message: 'Job finished successfully',

@@ -9,6 +9,6 @@ import { MapsModule } from '../maps/maps.module';
   imports: [RedisModule, MapsModule],
   controllers: [TrackingController],
   providers: [TrackingService, TrackingGateway],
-  exports: [TrackingService],
+  exports: [TrackingService, TrackingGateway],
 })
 export class TrackingModule {}
